@@ -1,0 +1,4 @@
+(executable
+ (public_name git-pushin)
+ (name main)
+ (libraries git_pushin))

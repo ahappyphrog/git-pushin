@@ -1,0 +1,11 @@
+lib: [
+  "_build/install/default/lib/git-pushin/META"
+  "_build/install/default/lib/git-pushin/dune-package"
+  "_build/install/default/lib/git-pushin/opam"
+]
+bin: [
+  "_build/install/default/bin/git-pushin"
+]
+doc: [
+  "_build/install/default/doc/git-pushin/README.md"
+]
