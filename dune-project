@@ -17,10 +17,10 @@
 
 (package
  (name git-pushin)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml)
+ (synopsis "A simple CLI-based calendar application")
+ (description "A calendar application for scheduling meetings between attendees and a host")
+ (depends ocaml yojson)
  (tags
-  ("add topics" "to describe" your project)))
+  ("calendar" "cli" "scheduling")))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
