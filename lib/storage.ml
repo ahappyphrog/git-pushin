@@ -64,3 +64,9 @@ let add_meeting meeting =
   let meetings = load_meetings () in
   let updated = meeting :: meetings in
   save_meetings updated
+
+let get_meetings_for_attendee name =
+  let meetings = load_meetings () in
+  List.filter (fun m -> m.attendee_name = name) meetings
+
+let get_all_meetings () = load_meetings ()

@@ -68,15 +68,40 @@ let rec schedule_meeting_interactive () =
       let response = read_line () in
       if response = "y" || response = "Y" then schedule_meeting_interactive ()
 
+let view_attendee_meetings () =
+  print_endline "\n--- View Your Meetings ---";
+  print_string "Enter your name: ";
+  flush stdout;
+  let name = read_line () in
+  let meetings = Storage.get_meetings_for_attendee name in
+  if List.length meetings = 0 then
+    Printf.printf "\nNo meetings found for %s.\n" name
+  else (
+    Printf.printf "\nMeetings for %s:\n" name;
+    List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
+
+let view_all_meetings () =
+  print_endline "\n--- All Scheduled Meetings (Host View) ---";
+  print_endline
+    "Note: In a real application, this view would be protected by authentication";
+  print_endline "      to ensure only the host can access it.\n";
+  let meetings = Storage.get_all_meetings () in
+  if List.length meetings = 0 then print_endline "No meetings scheduled yet."
+  else (
+    Printf.printf "Total meetings: %d\n\n" (List.length meetings);
+    List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
+
 (* Main menu *)
 let rec main_menu () =
   print_endline "\n========================================";
   print_endline "    Calendar Application";
   print_endline "========================================";
-  print_endline "1. Schedule a meeting";
-  print_endline "2. Exit";
+  print_endline "1. Schedule a meeting (Attendee)";
+  print_endline "2. View my meetings (Attendee)";
+  print_endline "3. View all meetings (Host)";
+  print_endline "4. Exit";
   print_endline "========================================";
-  print_string "Select an option (1-2): ";
+  print_string "Select an option (1-4): ";
   flush stdout;
 
   let choice = read_line () in
@@ -85,6 +110,12 @@ let rec main_menu () =
       schedule_meeting_interactive ();
       main_menu ()
   | "2" ->
+      view_attendee_meetings ();
+      main_menu ()
+  | "3" ->
+      view_all_meetings ();
+      main_menu ()
+  | "4" ->
       print_endline "\nGoodbye!";
       exit 0
   | _ ->
