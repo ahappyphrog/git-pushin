@@ -1,0 +1,28 @@
+---
+group:  
+  - name: Rohan Sampath
+    netid: rrs248
+  - name: Saket Murali
+    netid: sm2879
+  - name: Kai Patragnoni
+    netid: kp623
+  - name: Sam Kiesel
+    netid: stk63
+
+pm:
+  name: Ikechi Nkemakolam
+  netid: idn7
+publish: true
+title: "The Cornellendar"
+git-repo: "https://github.com/ahappyphrog/git-pushin"
+demo-video-url: "https://www.youtube.com/watch?v=eSBybJGZoCU"
+
+desc: >
+  Our project is an calendar app. The system that we are building is a calendar 
+  system that allows you to schedule events yourself and other people as well as 
+  accept invites from other people to join their events. The app keeps everyone
+  on the same page by surfacing scheduling conflicts, offering reminders, and
+  letting users share calendars across teams or families. We also plan to
+  integrate Cornell-specific resources like course schedules and club meetings
+  so that students can manage campus life without juggling multiple tools.
+  

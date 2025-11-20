@@ -1,1 +1,24 @@
-TODO: Add install instructions
+# Installation Instructions
+
+## Prerequisites
+
+- Dune `opam install dune`
+
+## Setup
+
+```bash
+git clone https://github.com/ahappyphrog/git-pushin.git
+cd git-pushin
+dune build
+```
+
+`dune build` compiles the CLI and writes artifacts under `_build/default`.
+
+## Run the app
+
+```bash
+dune exec git-pushin
+```
+
+This launches the terminal interface and any events collected are stored 
+in `meetings.json` so you can restart without losing meetings.
