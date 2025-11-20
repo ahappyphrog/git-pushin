@@ -47,8 +47,7 @@ let rec read_date prompt =
     print_endline "Invalid input. Please try again.";
     read_date prompt
 
-(* Schedule a new meeting *)
-let schedule_meeting_simple () =
+let rec schedule_meeting_interactive () =
   print_endline "\n--- Schedule a Meeting ---";
   print_string "Enter your name: ";
   flush stdout;
@@ -58,14 +57,21 @@ let schedule_meeting_simple () =
   let end_time = read_time "Enter end time" in
 
   let meeting = { attendee_name = name; date; start_time; end_time } in
-  Storage.add_meeting meeting;
-  print_endline "\nMeeting scheduled successfully!";
-  print_endline (string_of_meeting meeting)
+  match Scheduler.schedule_meeting meeting with
+  | Ok msg ->
+      print_endline ("\n" ^ msg);
+      print_endline (string_of_meeting meeting)
+  | Error msg ->
+      print_endline ("\nError: " ^ msg);
+      print_string "Would you like to try again? (y/n): ";
+      flush stdout;
+      let response = read_line () in
+      if response = "y" || response = "Y" then schedule_meeting_interactive ()
 
 (* Main menu *)
 let rec main_menu () =
   print_endline "\n========================================";
-  print_endline "    Calendar Application - Step 1";
+  print_endline "    Calendar Application";
   print_endline "========================================";
   print_endline "1. Schedule a meeting";
   print_endline "2. Exit";
@@ -76,7 +82,7 @@ let rec main_menu () =
   let choice = read_line () in
   match choice with
   | "1" ->
-      schedule_meeting_simple ();
+      schedule_meeting_interactive ();
       main_menu ()
   | "2" ->
       print_endline "\nGoodbye!";
@@ -85,8 +91,6 @@ let rec main_menu () =
       print_endline "Invalid option. Please try again.";
       main_menu ()
 
-(* Start the application *)
 let run () =
   print_endline "\nWelcome to the Calendar Application!";
-  print_endline "(Step 1: Basic scheduling, no conflict detection)";
   main_menu ()
