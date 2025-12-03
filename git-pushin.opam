@@ -14,7 +14,6 @@ depends: [
   "dune" {>= "3.20"}
   "ocaml"
   "yojson"
-  "bogue"
   "bisect_ppx" {with-test}
   "odoc" {with-doc}
 ]

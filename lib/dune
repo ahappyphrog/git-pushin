@@ -1,4 +1,4 @@
 (library
  (name git_pushin)
- (libraries yojson bogue)
+ (libraries yojson)
  (instrumentation (backend bisect_ppx)))
