@@ -19,7 +19,7 @@
  (name git-pushin)
  (synopsis "A simple CLI-based calendar application")
  (description "A calendar application for scheduling meetings between attendees and a host")
- (depends ocaml yojson (bisect_ppx :with-test))
+ (depends ocaml yojson bogue (bisect_ppx :with-test))
  (tags
   ("calendar" "cli" "scheduling")))
 

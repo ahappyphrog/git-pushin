@@ -1,1 +1,1 @@
-let () = Git_pushin.Cli.run ()
+let () = Git_pushin.Gui.run ()
