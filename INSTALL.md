@@ -2,7 +2,19 @@
 
 ## Prerequisites
 
-- Dune `opam install dune`
+### OCaml Packages
+Install required OCaml packages via opam:
+```bash
+opam install dune yojson graphics
+```
+
+### macOS GUI Support (XQuartz)
+For GUI mode on macOS, install XQuartz:
+```bash
+brew install --cask xquartz
+
+open -a XQuartz
+```
 
 ## Setup
 
@@ -20,5 +32,4 @@ dune build
 dune exec git-pushin
 ```
 
-This launches the CLI and any events collected are stored 
-in `meetings.json`.
+Any events collected are stored in `meetings.json`.
