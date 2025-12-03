@@ -5,3 +5,8 @@ Kai Patragnoni, kp623
 Saket Murali, sm2879
 Rohan Sampath, rrs248
 Sam Kiesel, stk63
+
+
+## Run it
+- GUI (default): `dune exec git-pushin`
+- CLI fallback: `dune exec git-pushin -- --cli`
