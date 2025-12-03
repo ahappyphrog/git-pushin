@@ -1,4 +1,5 @@
 (executable
  (public_name git-pushin)
  (name main)
- (libraries git_pushin))
+ (libraries git_pushin)
+ (instrumentation (backend bisect_ppx)))

@@ -1,3 +1,4 @@
 (tests
  (names test_types_scheduler test_auth_storage)
- (libraries git_pushin ounit2 unix))
+ (libraries git_pushin ounit2 unix)
+ (instrumentation (backend bisect_ppx)))
