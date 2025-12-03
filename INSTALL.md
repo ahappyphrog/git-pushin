@@ -20,5 +20,5 @@ dune build
 dune exec git-pushin
 ```
 
-This launches the terminal interface and any events collected are stored 
-in `meetings.json` so you can restart without losing meetings.
+This launches the CLI and any events collected are stored 
+in `meetings.json`.
