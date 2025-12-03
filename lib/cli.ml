@@ -1,6 +1,6 @@
 open Types
 
-(* Read password without echo - simple version *)
+(* Read password *)
 let read_password prompt =
   Printf.printf "%s: " prompt;
   flush stdout;
@@ -30,14 +30,14 @@ let setup_host_password () =
 
 (* Authenticate user (create account if doesn't exist) *)
 let authenticate_user username =
-  if Auth.user_exists username then (
+  if Auth.user_exists username then
     let password = read_password "Enter your password" in
     if Auth.verify_user_password username password then (
       print_endline "Authentication successful!";
       true)
     else (
       print_endline "Incorrect password!";
-      false))
+      false)
   else (
     Printf.printf "\nUser '%s' not found. Let's create an account.\n" username;
     let rec get_password () =
@@ -104,94 +104,123 @@ let rec read_date prompt =
     print_endline "Invalid input. Please try again.";
     read_date prompt
 
-let rec schedule_meeting_interactive () =
+let rec schedule_meeting_for name =
   print_endline "\n--- Schedule a Meeting ---";
-  print_string "Enter your name: ";
-  flush stdout;
-  let name = read_line () in
+  let date = read_date "Enter date" in
+  let start_time = read_time "Enter start time" in
+  let end_time = read_time "Enter end time" in
 
-  if authenticate_user name then (
-    let date = read_date "Enter date" in
-    let start_time = read_time "Enter start time" in
-    let end_time = read_time "Enter end time" in
+  let meeting = { attendee_name = name; date; start_time; end_time } in
+  match Scheduler.schedule_meeting meeting with
+  | Ok msg ->
+      print_endline ("\n" ^ msg);
+      print_endline (string_of_meeting meeting)
+  | Error msg ->
+      print_endline ("\nError: " ^ msg);
+      print_string "Would you like to try again? (y/n): ";
+      flush stdout;
+      let response = read_line () in
+      if response = "y" || response = "Y" then schedule_meeting_for name else ()
 
-    let meeting = { attendee_name = name; date; start_time; end_time } in
-    match Scheduler.schedule_meeting meeting with
-    | Ok msg ->
-        print_endline ("\n" ^ msg);
-        print_endline (string_of_meeting meeting)
-    | Error msg ->
-        print_endline ("\nError: " ^ msg);
-        print_string "Would you like to try again? (y/n): ";
-        flush stdout;
-        let response = read_line () in
-        if response = "y" || response = "Y" then schedule_meeting_interactive ())
-  else
-    print_endline "Authentication failed. Returning to main menu."
+let show_attendee_meetings name =
+  let meetings = Storage.get_meetings_for_attendee name in
+  if List.length meetings = 0 then
+    Printf.printf "\nNo meetings found for %s.\n" name
+  else (
+    Printf.printf "\nMeetings for %s:\n" name;
+    List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
 
-let view_attendee_meetings () =
-  print_endline "\n--- View Your Meetings ---";
-  print_string "Enter your name: ";
-  flush stdout;
-  let name = read_line () in
+let show_all_meetings () =
+  let meetings = Storage.get_all_meetings () in
+  if List.length meetings = 0 then print_endline "\nNo meetings scheduled yet."
+  else (
+    Printf.printf "\nTotal meetings: %d\n" (List.length meetings);
+    List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
 
-  if authenticate_user name then (
-    let meetings = Storage.get_meetings_for_attendee name in
-    if List.length meetings = 0 then
-      Printf.printf "\nNo meetings found for %s.\n" name
-    else (
-      Printf.printf "\nMeetings for %s:\n" name;
-      List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings))
-  else
-    print_endline "Authentication failed. Returning to main menu."
-
-let view_all_meetings () =
-  print_endline "\n--- All Scheduled Meetings (Host View) ---";
-  print_endline "This view requires host authentication.\n";
-  let password = read_password "Enter host password" in
-
-  if Auth.verify_user_password "host" password then (
-    print_endline "Authentication successful!\n";
-    let meetings = Storage.get_all_meetings () in
-    if List.length meetings = 0 then print_endline "No meetings scheduled yet."
-    else (
-      Printf.printf "Total meetings: %d\n\n" (List.length meetings);
-      List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings))
-  else
-    print_endline "Incorrect host password. Returning to main menu."
-
-(* Main menu *)
-let rec main_menu () =
+let rec host_dashboard () =
   print_endline "\n========================================";
-  print_endline "    Calendar Application";
+  print_endline "           Host Dashboard";
   print_endline "========================================";
-  print_endline "1. Schedule a meeting (Attendee)";
-  print_endline "2. View my meetings (Attendee)";
-  print_endline "3. View all meetings (Host)";
-  print_endline "4. Exit";
-  print_endline "========================================";
-  print_string "Select an option (1-4): ";
+  show_all_meetings ();
+  print_endline "\nOptions:";
+  print_endline "1. Refresh meetings";
+  print_endline "2. Logout";
+  print_string "Select an option (1-2): ";
   flush stdout;
+  match read_line () with
+  | "1" -> host_dashboard ()
+  | "2" -> print_endline "Logging out of host mode..."
+  | _ ->
+      print_endline "Invalid option. Please try again.";
+      host_dashboard ()
 
-  let choice = read_line () in
-  match choice with
+let rec attendee_dashboard name =
+  print_endline "\n========================================";
+  Printf.printf "       Attendee Dashboard - %s\n" name;
+  print_endline "========================================";
+  show_attendee_meetings name;
+  print_endline "\nOptions:";
+  print_endline "1. Schedule a meeting";
+  print_endline "2. Refresh meetings";
+  print_endline "3. Logout";
+  print_string "Select an option (1-3): ";
+  flush stdout;
+  match read_line () with
   | "1" ->
-      schedule_meeting_interactive ();
-      main_menu ()
+      schedule_meeting_for name;
+      attendee_dashboard name
+  | "2" -> attendee_dashboard name
+  | "3" -> print_endline "Logging out of attendee mode..."
+  | _ ->
+      print_endline "Invalid option. Please try again.";
+      attendee_dashboard name
+
+let rec enter_host_mode () =
+  print_endline "\n--- Host Mode ---";
+  setup_host_password ();
+  print_endline "Please authenticate to access host features.";
+  if authenticate_user "host" then (
+    print_endline "Authentication successful!";
+    host_dashboard ())
+  else print_endline "Authentication failed. Returning to mode selection."
+
+let rec enter_attendee_mode () =
+  print_endline "\n--- Attendee Mode ---";
+  print_string "Enter your username: ";
+  flush stdout;
+  let name = read_line () |> String.trim in
+  if String.length name = 0 then (
+    print_endline "Username cannot be empty.";
+    enter_attendee_mode ())
+  else if authenticate_user name then (
+    print_endline "Authentication successful!";
+    attendee_dashboard name)
+  else print_endline "Authentication failed. Returning to mode selection."
+
+let rec mode_selection_menu () =
+  print_endline "\n========================================";
+  print_endline "        Calendar Application";
+  print_endline "========================================";
+  print_endline "1. Host mode";
+  print_endline "2. Attendee mode";
+  print_endline "3. Exit";
+  print_endline "========================================";
+  print_string "Select an option (1-3): ";
+  flush stdout;
+  match read_line () with
+  | "1" ->
+      enter_host_mode ();
+      mode_selection_menu ()
   | "2" ->
-      view_attendee_meetings ();
-      main_menu ()
+      enter_attendee_mode ();
+      mode_selection_menu ()
   | "3" ->
-      view_all_meetings ();
-      main_menu ()
-  | "4" ->
       print_endline "\nGoodbye!";
       exit 0
   | _ ->
       print_endline "Invalid option. Please try again.";
-      main_menu ()
+      mode_selection_menu ()
 
 let run () =
   print_endline "\nWelcome to the Calendar Application!";
-  setup_host_password ();
-  main_menu ()
+  mode_selection_menu ()

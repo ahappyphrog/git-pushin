@@ -8,17 +8,29 @@ val read_time : string -> time
 val read_date : string -> date
 (** Prompt for a date using the given message. Re-prompts until valid. *)
 
-val schedule_meeting_interactive : unit -> unit
-(** Walk through scheduling a meeting interactively. *)
+val schedule_meeting_for : string -> unit
+(** Schedule a meeting for the provided, already-authenticated attendee. *)
 
-val view_attendee_meetings : unit -> unit
-(** Show meetings filtered by attendee name. *)
+val show_attendee_meetings : string -> unit
+(** Display every meeting that belongs to the provided attendee. *)
 
-val view_all_meetings : unit -> unit
-(** Show all scheduled meetings (host view). *)
+val show_all_meetings : unit -> unit
+(** Display all meetings visible to the host. *)
 
-val main_menu : unit -> unit
-(** Present the main menu loop. *)
+val host_dashboard : unit -> unit
+(** Host-specific dashboard that lists meetings and refresh/logout options. *)
+
+val attendee_dashboard : string -> unit
+(** Attendee-specific dashboard that lists meetings and actions. *)
+
+val enter_host_mode : unit -> unit
+(** Authenticate as host (creating credentials if needed) and open the dashboard. *)
+
+val enter_attendee_mode : unit -> unit
+(** Authenticate or create an attendee account and open the dashboard. *)
+
+val mode_selection_menu : unit -> unit
+(** Present the initial host/attendee mode chooser. *)
 
 val run : unit -> unit
 (** Entry point for the CLI experience. *)
