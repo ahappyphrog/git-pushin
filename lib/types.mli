@@ -14,12 +14,16 @@ type date = {
 (** A calendar date using ISO components. *)
 
 type meeting = {
+  organizer_name : string;
   attendee_name : string;
   date : date;
   start_time : time;
   end_time : time;
 }
-(** A scheduled meeting with an attendee, date, and start/end times. *)
+(** A scheduled meeting between an organizer and attendee on a specific date/time. *)
+
+type invitation = meeting
+(** Pending meetings awaiting acceptance by the invitee. *)
 
 type role = Host | Attendee
 (** User role: Host can manage meetings, Attendee can only view their own. *)

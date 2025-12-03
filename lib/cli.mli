@@ -9,19 +9,22 @@ val read_date : string -> date
 (** Prompt for a date using the given message. Re-prompts until valid. *)
 
 val schedule_meeting_for : string -> unit
-(** Schedule a meeting for the provided, already-authenticated attendee. *)
+(** Prompt for details and send a meeting invitation from the provided user. *)
 
 val show_attendee_meetings : string -> unit
-(** Display every meeting that belongs to the provided attendee. *)
+(** Display every meeting that belongs to the provided attendee/organizer. *)
 
 val show_all_meetings : unit -> unit
 (** Display all meetings visible to the host. *)
 
+val handle_pending_invitations : string -> unit
+(** Allow the given user to accept or decline pending invitations. *)
+
 val host_dashboard : unit -> unit
-(** Host-specific dashboard that lists meetings and refresh/logout options. *)
+(** Host dashboard with meeting, invitation review, and invitation sending controls. *)
 
 val attendee_dashboard : string -> unit
-(** Attendee-specific dashboard that lists meetings and actions. *)
+(** Attendee dashboard with meeting views, invitation review, and invitation sending. *)
 
 val enter_host_mode : unit -> unit
 (** Authenticate as host (creating credentials if needed) and open the dashboard. *)

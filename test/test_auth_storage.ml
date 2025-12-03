@@ -58,8 +58,8 @@ let test_hash_tampering _ =
 let mk_time h m = { hours = h; minutes = m }
 let mk_date y m d = { year = y; month = m; day = d }
 
-let mk_meeting attendee date start_time end_time =
-  { attendee_name = attendee; date; start_time; end_time }
+let mk_meeting ?(organizer = "host") attendee date start_time end_time =
+  { organizer_name = organizer; attendee_name = attendee; date; start_time; end_time }
 
 let test_user_lifecycle _ =
   with_tmp_dir "users" @@ fun () ->
@@ -96,10 +96,10 @@ let test_meeting_persistence _ =
   Storage.add_meeting m2;
   let all = Storage.get_all_meetings () in
   assert_equal 2 (List.length all);
-  let for_alice = Storage.get_meetings_for_attendee "alice" in
+  let for_alice = Storage.get_meetings_for_user "alice" in
   assert_equal 1 (List.length for_alice);
   assert_equal "alice" (List.hd for_alice).attendee_name;
-  let for_bob = Storage.get_meetings_for_attendee "bob" in
+  let for_bob = Storage.get_meetings_for_user "bob" in
   assert_equal 1 (List.length for_bob);
   assert_equal "bob" (List.hd for_bob).attendee_name
 

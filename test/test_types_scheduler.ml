@@ -4,7 +4,8 @@ open Git_pushin
 
 let mk_time hours minutes = { hours; minutes }
 let mk_date year month day = { year; month; day }
-let mk_meeting attendee date start_time end_time = { attendee_name = attendee; date; start_time; end_time }
+let mk_meeting ?(organizer = "host") attendee date start_time end_time =
+  { organizer_name = organizer; attendee_name = attendee; date; start_time; end_time }
 
 let safe_remove path = try Sys.remove path with _ -> ()
 
@@ -71,14 +72,25 @@ let test_has_conflict _ =
   let date = mk_date 2024 5 15 in
   let existing =
     [
-      mk_meeting "alice" date (mk_time 9 0) (mk_time 10 0);
-      mk_meeting "bob" date (mk_time 11 0) (mk_time 12 0);
+      mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0);
+      mk_meeting ~organizer:"carol" "dave" date (mk_time 11 0) (mk_time 12 0);
     ]
   in
-  let overlapping = mk_meeting "carol" date (mk_time 9 30) (mk_time 9 45) in
-  let free_slot = mk_meeting "dave" date (mk_time 10 0) (mk_time 10 30) in
-  assert_bool "overlap" (Scheduler.has_conflict overlapping existing);
-  assert_bool "allow free slot" (not (Scheduler.has_conflict free_slot existing))
+  let overlapping =
+    mk_meeting ~organizer:"alice" "erin" date (mk_time 9 30) (mk_time 9 45)
+  in
+  let unrelated_parties =
+    mk_meeting ~organizer:"erin" "frank" date (mk_time 9 30) (mk_time 9 45)
+  in
+  let free_slot =
+    mk_meeting ~organizer:"alice" "george" date (mk_time 10 0) (mk_time 10 30)
+  in
+  assert_bool "overlap for shared participant"
+    (Scheduler.has_conflict overlapping existing);
+  assert_bool "no conflict for different participants"
+    (not (Scheduler.has_conflict unrelated_parties existing));
+  assert_bool "allow free slot"
+    (not (Scheduler.has_conflict free_slot existing))
 
 let test_schedule_invalid_interval _ =
   with_tmp_dir "sched_invalid" @@ fun () ->
@@ -92,13 +104,17 @@ let test_schedule_invalid_interval _ =
 let test_schedule_conflict_and_success _ =
   with_tmp_dir "sched_conflict" @@ fun () ->
   let date = mk_date 2024 7 7 in
-  let existing = mk_meeting "frank" date (mk_time 9 0) (mk_time 10 0) in
+  let existing = mk_meeting ~organizer:"host" "frank" date (mk_time 9 0) (mk_time 10 0) in
   Storage.save_meetings [ existing ];
-  let conflict = mk_meeting "grace" date (mk_time 9 15) (mk_time 9 45) in
+  let conflict =
+    mk_meeting ~organizer:"host" "grace" date (mk_time 9 15) (mk_time 9 45)
+  in
   (match Scheduler.schedule_meeting conflict with
   | Error _ -> ()
   | Ok _ -> assert_failure "Expected conflict error");
-  let free_slot = mk_meeting "heidi" date (mk_time 10 0) (mk_time 10 30) in
+  let free_slot =
+    mk_meeting ~organizer:"host" "heidi" date (mk_time 10 0) (mk_time 10 30)
+  in
   match Scheduler.schedule_meeting free_slot with
   | Ok _ ->
       let all = Storage.get_all_meetings () in

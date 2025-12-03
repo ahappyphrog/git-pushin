@@ -104,31 +104,46 @@ let rec read_date prompt =
     print_endline "Invalid input. Please try again.";
     read_date prompt
 
+let rec prompt_invitee current_user =
+  print_string "Enter the username you would like to meet with (or leave blank to cancel): ";
+  flush stdout;
+  let invitee = read_line () |> String.trim in
+  if String.length invitee = 0 then None
+  else if invitee = current_user then (
+    print_endline "You cannot schedule a meeting with yourself.";
+    prompt_invitee current_user)
+  else Some invitee
+
 let rec schedule_meeting_for name =
   print_endline "\n--- Schedule a Meeting ---";
-  let date = read_date "Enter date" in
-  let start_time = read_time "Enter start time" in
-  let end_time = read_time "Enter end time" in
+  match prompt_invitee name with
+  | None -> print_endline "Invite cancelled."
+  | Some invitee ->
+      let date = read_date "Enter date" in
+      let start_time = read_time "Enter start time" in
+      let end_time = read_time "Enter end time" in
 
-  let meeting = { attendee_name = name; date; start_time; end_time } in
-  match Scheduler.schedule_meeting meeting with
-  | Ok msg ->
-      print_endline ("\n" ^ msg);
-      print_endline (string_of_meeting meeting)
-  | Error msg ->
-      print_endline ("\nError: " ^ msg);
-      print_string "Would you like to try again? (y/n): ";
-      flush stdout;
-      let response = read_line () in
-      if response = "y" || response = "Y" then schedule_meeting_for name else ()
+      let meeting = { organizer_name = name; attendee_name = invitee; date; start_time; end_time } in
+      Storage.add_invitation meeting;
+      Printf.printf "\nInvitation sent to %s. They will be prompted to accept.\n" invitee;
+      if not (Auth.user_exists invitee) then
+        print_endline
+          "The invitee is new to the system and will be asked to accept upon account creation.";
+      ()
 
 let show_attendee_meetings name =
-  let meetings = Storage.get_meetings_for_attendee name in
+  let meetings = Storage.get_meetings_for_user name in
   if List.length meetings = 0 then
     Printf.printf "\nNo meetings found for %s.\n" name
   else (
     Printf.printf "\nMeetings for %s:\n" name;
-    List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
+    List.iter
+      (fun m ->
+        let counterpart =
+          if m.organizer_name = name then m.attendee_name else m.organizer_name
+        in
+        Printf.printf "  - With %s: %s\n" counterpart (string_of_meeting m))
+      meetings)
 
 let show_all_meetings () =
   let meetings = Storage.get_all_meetings () in
@@ -137,6 +152,39 @@ let show_all_meetings () =
     Printf.printf "\nTotal meetings: %d\n" (List.length meetings);
     List.iter (fun m -> print_endline ("  - " ^ string_of_meeting m)) meetings)
 
+let rec handle_pending_invitations username =
+  let invitations = Storage.get_invitations_for_user username in
+  match invitations with
+  | [] -> print_endline "\nNo pending invitations."
+  | _ ->
+      print_endline "\nPending invitations:";
+      List.iter
+        (fun inv ->
+          Printf.printf "\nFrom %s: %s\n" inv.organizer_name (string_of_meeting inv);
+          let rec prompt_response () =
+            print_string "Accept this invitation? (y/n/skip): ";
+            flush stdout;
+            match read_line () with
+            | "y" | "Y" ->
+                begin
+                  match Scheduler.schedule_meeting inv with
+                  | Ok _ ->
+                      Storage.remove_invitation (fun candidate -> candidate = inv);
+                      print_endline "Invitation accepted and meeting scheduled."
+                  | Error msg ->
+                      Printf.printf "Unable to schedule meeting: %s\n" msg
+                end
+            | "n" | "N" ->
+                Storage.remove_invitation (fun candidate -> candidate = inv);
+                print_endline "Invitation declined."
+            | "s" | "S" -> print_endline "Invitation skipped for now."
+            | _ ->
+                print_endline "Please respond with 'y', 'n', or 's'.";
+                prompt_response ()
+          in
+          prompt_response ())
+        invitations
+
 let rec host_dashboard () =
   print_endline "\n========================================";
   print_endline "           Host Dashboard";
@@ -144,12 +192,20 @@ let rec host_dashboard () =
   show_all_meetings ();
   print_endline "\nOptions:";
   print_endline "1. Refresh meetings";
-  print_endline "2. Logout";
-  print_string "Select an option (1-2): ";
+  print_endline "2. Send meeting invitation";
+  print_endline "3. Review pending invitations";
+  print_endline "4. Logout";
+  print_string "Select an option (1-4): ";
   flush stdout;
   match read_line () with
   | "1" -> host_dashboard ()
-  | "2" -> print_endline "Logging out of host mode..."
+  | "2" ->
+      schedule_meeting_for "host";
+      host_dashboard ()
+  | "3" ->
+      handle_pending_invitations "host";
+      host_dashboard ()
+  | "4" -> print_endline "Logging out of host mode..."
   | _ ->
       print_endline "Invalid option. Please try again.";
       host_dashboard ()
@@ -160,17 +216,21 @@ let rec attendee_dashboard name =
   print_endline "========================================";
   show_attendee_meetings name;
   print_endline "\nOptions:";
-  print_endline "1. Schedule a meeting";
+  print_endline "1. Send meeting invitation";
   print_endline "2. Refresh meetings";
-  print_endline "3. Logout";
-  print_string "Select an option (1-3): ";
+  print_endline "3. Review pending invitations";
+  print_endline "4. Logout";
+  print_string "Select an option (1-4): ";
   flush stdout;
   match read_line () with
   | "1" ->
       schedule_meeting_for name;
       attendee_dashboard name
   | "2" -> attendee_dashboard name
-  | "3" -> print_endline "Logging out of attendee mode..."
+  | "3" ->
+      handle_pending_invitations name;
+      attendee_dashboard name
+  | "4" -> print_endline "Logging out of attendee mode..."
   | _ ->
       print_endline "Invalid option. Please try again.";
       attendee_dashboard name
@@ -181,6 +241,7 @@ let rec enter_host_mode () =
   print_endline "Please authenticate to access host features.";
   if authenticate_user "host" then (
     print_endline "Authentication successful!";
+    handle_pending_invitations "host";
     host_dashboard ())
   else print_endline "Authentication failed. Returning to mode selection."
 
@@ -194,6 +255,7 @@ let rec enter_attendee_mode () =
     enter_attendee_mode ())
   else if authenticate_user name then (
     print_endline "Authentication successful!";
+    handle_pending_invitations name;
     attendee_dashboard name)
   else print_endline "Authentication failed. Returning to mode selection."
 

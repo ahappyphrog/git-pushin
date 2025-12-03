@@ -15,6 +15,7 @@ let date_to_json d =
 let meeting_to_json m =
   `Assoc
     [
+      ("organizer_name", `String m.organizer_name);
       ("attendee_name", `String m.attendee_name);
       ("date", date_to_json m.date);
       ("start_time", time_to_json m.start_time);
@@ -38,7 +39,11 @@ let json_to_date json =
 
 (* Convert JSON to meeting *)
 let json_to_meeting json =
+  let organizer_name =
+    try json |> member "organizer_name" |> to_string with _ -> "host"
+  in
   {
+    organizer_name;
     attendee_name = json |> member "attendee_name" |> to_string;
     date = json |> member "date" |> json_to_date;
     start_time = json |> member "start_time" |> json_to_time;
@@ -65,9 +70,11 @@ let add_meeting meeting =
   let updated = meeting :: meetings in
   save_meetings updated
 
-let get_meetings_for_attendee name =
+let get_meetings_for_user name =
   let meetings = load_meetings () in
-  List.filter (fun m -> m.attendee_name = name) meetings
+  List.filter
+    (fun m -> m.attendee_name = name || m.organizer_name = name)
+    meetings
 
 let get_all_meetings () = load_meetings ()
 
@@ -138,3 +145,35 @@ let authenticate_user username password =
   match List.find_opt (fun u -> u.username = username) users with
   | Some user when Auth.verify_password user.password_hash password -> Some user
   | _ -> None
+
+(* Invitation management *)
+let invitations_file = "invitations.json"
+
+let invitation_to_json (inv : invitation) = meeting_to_json inv
+
+let json_to_invitation json = json_to_meeting json
+
+let load_invitations () =
+  if Sys.file_exists invitations_file then
+    try
+      let json = Yojson.Basic.from_file invitations_file in
+      json |> to_list |> List.map json_to_invitation
+    with _ -> []
+  else []
+
+let save_invitations invitations =
+  let json = `List (List.map invitation_to_json invitations) in
+  Yojson.Basic.to_file invitations_file json
+
+let add_invitation invitation =
+  let invitations = load_invitations () in
+  save_invitations (invitation :: invitations)
+
+let get_invitations_for_user username =
+  let invitations = load_invitations () in
+  List.filter (fun inv -> inv.attendee_name = username) invitations
+
+let remove_invitation predicate =
+  let invitations = load_invitations () in
+  let remaining = List.filter (fun inv -> not (predicate inv)) invitations in
+  save_invitations remaining
