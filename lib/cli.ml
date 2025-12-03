@@ -123,13 +123,24 @@ let rec schedule_meeting_for name =
       let start_time = read_time "Enter start time" in
       let end_time = read_time "Enter end time" in
 
-      let meeting = { organizer_name = name; attendee_name = invitee; date; start_time; end_time } in
-      Storage.add_invitation meeting;
-      Printf.printf "\nInvitation sent to %s. They will be prompted to accept.\n" invitee;
-      if not (Auth.user_exists invitee) then
+      let meeting =
+        { organizer_name = name; attendee_name = invitee; date; start_time; end_time }
+      in
+      if not (is_valid_interval start_time end_time) then
         print_endline
-          "The invitee is new to the system and will be asked to accept upon account creation.";
-      ()
+          "Invalid time interval. Start time must be before end time. Invitation not sent."
+      else
+        let existing_meetings = Storage.get_all_meetings () in
+        if Scheduler.has_conflict meeting existing_meetings then
+          print_endline
+            "A conflicting meeting already exists for you or the invitee. Invitation not sent."
+        else (
+          Storage.add_invitation meeting;
+          Printf.printf "\nInvitation sent to %s. They will be prompted to accept.\n" invitee;
+          if not (Auth.user_exists invitee) then
+            print_endline
+              "The invitee is new to the system and will be asked to accept upon account creation.";
+          ())
 
 let show_attendee_meetings name =
   let meetings = Storage.get_meetings_for_user name in
