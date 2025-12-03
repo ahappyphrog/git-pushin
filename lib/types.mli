@@ -21,6 +21,16 @@ type meeting = {
 }
 (** A scheduled meeting with an attendee, date, and start/end times. *)
 
+type role = Host | Attendee
+(** User role: Host can manage meetings, Attendee can only view their own. *)
+
+type user = {
+  username : string;
+  password_hash : string;
+  role : role;
+}
+(** A user account with authentication credentials and role. *)
+
 val string_of_time : time -> string
 (** Format a [time] as [HH:MM]. *)
 

@@ -16,6 +16,14 @@ type meeting = {
   end_time : time;
 }
 
+type role = Host | Attendee
+
+type user = {
+  username : string;
+  password_hash : string;
+  role : role;
+}
+
 (* String formatting functions *)
 let string_of_time t = Printf.sprintf "%02d:%02d" t.hours t.minutes
 let string_of_date d = Printf.sprintf "%04d-%02d-%02d" d.year d.month d.day

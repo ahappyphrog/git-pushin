@@ -32,7 +32,7 @@ let setup_host_password () =
 let authenticate_user username =
   if Auth.user_exists username then (
     let password = read_password "Enter your password" in
-    if Auth.verify_password username password then (
+    if Auth.verify_user_password username password then (
       print_endline "Authentication successful!";
       true)
     else (
@@ -150,7 +150,7 @@ let view_all_meetings () =
   print_endline "This view requires host authentication.\n";
   let password = read_password "Enter host password" in
 
-  if Auth.verify_password "host" password then (
+  if Auth.verify_user_password "host" password then (
     print_endline "Authentication successful!\n";
     let meetings = Storage.get_all_meetings () in
     if List.length meetings = 0 then print_endline "No meetings scheduled yet."

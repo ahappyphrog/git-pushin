@@ -1,5 +1,6 @@
 open OUnit2
-open Types
+open Git_pushin.Types
+open Git_pushin
 
 let safe_remove path = try Sys.remove path with _ -> ()
 

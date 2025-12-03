@@ -70,3 +70,71 @@ let get_meetings_for_attendee name =
   List.filter (fun m -> m.attendee_name = name) meetings
 
 let get_all_meetings () = load_meetings ()
+
+(* User management *)
+let users_file = "users.json"
+
+(* Convert role to JSON *)
+let role_to_json = function
+  | Host -> `String "Host"
+  | Attendee -> `String "Attendee"
+
+(* Convert JSON to role *)
+let json_to_role json =
+  match to_string json with
+  | "Host" -> Host
+  | "Attendee" -> Attendee
+  | _ -> failwith "Invalid role"
+
+(* Convert user to JSON *)
+let user_to_json u =
+  `Assoc [
+    ("username", `String u.username);
+    ("password_hash", `String u.password_hash);
+    ("role", role_to_json u.role);
+  ]
+
+(* Convert JSON to user *)
+let json_to_user json =
+  {
+    username = json |> member "username" |> to_string;
+    password_hash = json |> member "password_hash" |> to_string;
+    role = json |> member "role" |> json_to_role;
+  }
+
+(* Load all users from file *)
+let load_users () =
+  if Sys.file_exists users_file then
+    try
+      let json = Yojson.Basic.from_file users_file in
+      json |> to_list |> List.map json_to_user
+    with _ -> []
+  else []
+
+(* Save all users to file *)
+let save_users users =
+  let json = `List (List.map user_to_json users) in
+  Yojson.Basic.to_file users_file json
+
+(* Check if host exists *)
+let host_exists () =
+  let users = load_users () in
+  List.exists (fun u -> u.role = Host) users
+
+(* Add a new user *)
+let add_user username password role =
+  let users = load_users () in
+  if List.exists (fun u -> u.username = username) users then
+    Error "User already exists"
+  else
+    let password_hash = Auth.hash_password password in
+    let user = { username; password_hash; role } in
+    save_users (user :: users);
+    Ok user
+
+(* Authenticate a user *)
+let authenticate_user username password =
+  let users = load_users () in
+  match List.find_opt (fun u -> u.username = username) users with
+  | Some user when Auth.verify_password user.password_hash password -> Some user
+  | _ -> None

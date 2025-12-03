@@ -2,8 +2,24 @@ open Yojson.Basic.Util
 
 let passwords_file = "passwords.json"
 
-(* Hash a password using MD5 *)
-let hash_password password = Digest.string password |> Digest.to_hex
+(* Generate a random salt *)
+let generate_salt () =
+  let random_bytes = String.init 16 (fun _ -> Char.chr (Random.int 256)) in
+  Digest.string random_bytes |> Digest.to_hex
+
+(* Hash a password with a salt *)
+let hash_password password =
+  let salt = generate_salt () in
+  let hash = Digest.string (salt ^ password) |> Digest.to_hex in
+  salt ^ ":" ^ hash
+
+(* Verify a password against a stored hash *)
+let verify_password stored_hash password =
+  match String.split_on_char ':' stored_hash with
+  | salt :: hash :: _ ->
+      let computed_hash = Digest.string (salt ^ password) |> Digest.to_hex in
+      computed_hash = hash
+  | _ -> false
 
 (* Load all users and their hashed passwords from file *)
 let load_passwords () =
@@ -37,12 +53,11 @@ let create_user username password =
     save_passwords updated;
     Ok "User created successfully"
 
-(* Verify a user's password *)
-let verify_password username password =
+(* Verify a user's password (by username) *)
+let verify_user_password username password =
   let users = load_passwords () in
-  let hashed = hash_password password in
   match List.find_opt (fun (name, _) -> name = username) users with
-  | Some (_, stored_hash) -> stored_hash = hashed
+  | Some (_, stored_hash) -> verify_password stored_hash password
   | None -> false
 
 (* Check if host exists *)

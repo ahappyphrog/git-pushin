@@ -1,5 +1,6 @@
 open OUnit2
-open Types
+open Git_pushin.Types
+open Git_pushin
 
 let mk_time hours minutes = { hours; minutes }
 let mk_date year month day = { year; month; day }
