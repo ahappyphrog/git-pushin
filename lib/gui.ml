@@ -146,7 +146,8 @@ let render_meeting_list ~title meetings ~x ~y ~w ~h =
       (fun m ->
         if !line_y > y + 20 then (
           moveto (x + 16) !line_y;
-          draw_string ("• " ^ string_of_meeting m);
+          (* Graphics draws ISO-8859-1; avoid Unicode bullets that render as boxes *)
+          draw_string ("- " ^ string_of_meeting m);
           line_y := !line_y - 24))
       meetings
 
