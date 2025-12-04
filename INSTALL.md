@@ -9,11 +9,13 @@ opam install dune yojson graphics
 ```
 
 ### macOS GUI Support (XQuartz)
-For GUI mode on macOS, install XQuartz:
+For GUI mode on macOS, install and run XQuartz:
 ```bash
 brew install --cask xquartz
 
 open -a XQuartz
+
+export DISPLAY=:0
 ```
 
 ## Setup
