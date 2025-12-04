@@ -326,7 +326,7 @@ let rec review_invitations username =
               {
                 id = "accept";
                 label = "Accept";
-                x = 200;
+                x = 160;
                 y = 240;
                 w = 160;
                 h = 50;
@@ -336,7 +336,7 @@ let rec review_invitations username =
               {
                 id = "decline";
                 label = "Decline";
-                x = 400;
+                x = 360;
                 y = 240;
                 w = 160;
                 h = 50;
@@ -346,7 +346,7 @@ let rec review_invitations username =
               {
                 id = "skip";
                 label = "Skip";
-                x = 600;
+                x = 560;
                 y = 240;
                 w = 160;
                 h = 50;
@@ -356,7 +356,7 @@ let rec review_invitations username =
               {
                 id = "back";
                 label = "Back to dashboard";
-                x = 800;
+                x = 760;
                 y = 240;
                 w = 180;
                 h = 50;
