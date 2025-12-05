@@ -1,17 +1,17 @@
+(** Generate a salt for the provided  password *)
 val hash_password : string -> string
-(** Generate a salted hash for the provided plain-text password. *)
 
+(** Check if a written password matches a stored salt *)
 val verify_password : string -> string -> bool
-(** Check whether a plain-text password matches a stored salted hash. *)
 
+(** Return [true] if a user already exists *)
 val user_exists : string -> bool
-(** Return [true] if a user entry already exists. *)
 
+(** Create new user record with the supplied password *)
 val create_user : string -> string -> (string, string) result
-(** Create a new user record with the supplied password. *)
 
+(** Validate a username and password against stored credentials *)
 val verify_user_password : string -> string -> bool
-(** Validate a username/password pair against stored credentials. *)
 
+(** helper for checking existence of host account *)
 val host_exists : unit -> bool
-(** Convenience helper to check for the existence of the host account. *)
