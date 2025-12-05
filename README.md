@@ -7,6 +7,6 @@ Rohan Sampath, rrs248
 Sam Kiesel, stk63
 
 
-## Run it
+## Run the program with the interface you prefer
 - GUI (default): `dune exec git-pushin`
-- CLI fallback: `dune exec git-pushin -- --cli`
+- CLI: `dune exec git-pushin -- --cli`
