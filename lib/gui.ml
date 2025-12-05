@@ -27,13 +27,16 @@ let success = rgb 31 164 104
 let danger = rgb 200 64 64
 let warning = rgb 239 181 80
 
+(** Safely close the graphics window without raising if it's already closed. *)
 let safe_close () = try close_graph () with _ -> ()
 
+(** Clear the window to the background color. *)
 let clear_canvas () =
   set_color background;
   fill_rect 0 0 window_w window_h;
   set_color black
 
+(** Draw the page title and subtitle at the top of the window. *)
 let draw_title ~title ~subtitle =
   set_color accent_dark;
   set_text_size 28;
@@ -44,6 +47,7 @@ let draw_title ~title ~subtitle =
   moveto 40 (window_h - 100);
   draw_string subtitle
 
+(** Draw a white card with a subtle border. *)
 let draw_card ~x ~y ~w ~h =
   set_color card;
   fill_rect x y w h;
@@ -51,6 +55,7 @@ let draw_card ~x ~y ~w ~h =
   draw_rect x y w h;
   set_color black
 
+(** Center text inside a rectangle using the provided color. *)
 let center_text_in_rect text (x, y, w, h) color =
   let (tw, th) = text_size text in
   let tx = x + ((w - tw) / 2) in
@@ -60,6 +65,7 @@ let center_text_in_rect text (x, y, w, h) color =
   draw_string text;
   set_color black
 
+(** Render a clickable button with a label and outline. *)
 let draw_button b =
   set_color b.color;
   fill_rect b.x b.y b.w b.h;
@@ -67,11 +73,13 @@ let draw_button b =
   draw_rect b.x b.y b.w b.h;
   center_text_in_rect b.label (b.x, b.y, b.w, b.h) b.text_color
 
+(** Return the button under a given coordinate if one exists. *)
 let button_at buttons x y =
   List.find_opt
     (fun b -> x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)
     buttons
 
+(** Block until a button is chosen via mouse click or mapped keypress, returning its id. *)
 let wait_for_button buttons =
   let rec loop () =
     let ev = wait_next_event [ Button_down; Key_pressed ] in
@@ -95,6 +103,7 @@ let wait_for_button buttons =
   in
   loop ()
 
+(** Present a modal notice with a message and an OK button. *)
 let show_notice ?(kind = Info) ~title ~body () =
   let card_w = 720 in
   let card_h = 200 in
@@ -129,6 +138,7 @@ let show_notice ?(kind = Info) ~title ~body () =
   draw_button ok_button;
   ignore (wait_for_button [ ok_button ])
 
+(** Render a titled card that lists meetings vertically. *)
 let render_meeting_list ~title meetings ~x ~y ~w ~h =
   draw_card ~x ~y ~w ~h;
   set_color accent_dark;
@@ -150,6 +160,7 @@ let render_meeting_list ~title meetings ~x ~y ~w ~h =
           line_y := !line_y - 24))
       meetings
 
+(** Render stacked stat cards at the given origin. *)
 let draw_stats ~x ~y stats =
   let w = 320 in
   let h = 120 in
@@ -169,8 +180,10 @@ let draw_stats ~x ~y stats =
       draw_string value)
     stats
 
+(** Draw a list of buttons. *)
 let render_buttons buttons = List.iter draw_button buttons
 
+(** Prompt for arbitrary text, optionally masking for passwords, with submit/cancel handling. *)
 let rec prompt_text ?(password = false) ?(allow_empty = false) ~title ~subtitle
     () =
   let rec loop current error_msg =
@@ -213,11 +226,12 @@ let rec prompt_text ?(password = false) ?(allow_empty = false) ~title ~subtitle
           if Char.code c >= 32 && Char.code c <= 126 then
             let next = current ^ String.make 1 c in
             loop next None
-          else loop current error_msg
+      else loop current error_msg
     else loop current error_msg
   in
   loop "" None
 
+(** Attempt to parse a time string in HH:MM format. *)
 let parse_time_input input =
   match String.split_on_char ':' (String.trim input) with
   | [ h; m ] -> (
@@ -230,6 +244,7 @@ let parse_time_input input =
       with _ -> None)
   | _ -> None
 
+(** Attempt to parse a date string in YYYY-MM-DD format. *)
 let parse_date_input input =
   match String.split_on_char '-' (String.trim input) with
   | [ y; m; d ] -> (
@@ -245,6 +260,7 @@ let parse_date_input input =
       with _ -> None)
   | _ -> None
 
+(** Prompt for a password twice, ensuring non-empty and matching values. *)
 let rec prompt_password_pair ~title ~subtitle () =
   match prompt_text ~password:true ~title ~subtitle () with
   | None -> None
@@ -264,6 +280,7 @@ let rec prompt_password_pair ~title ~subtitle () =
           prompt_password_pair ~title ~subtitle ()
       | None -> None)
 
+(** Ensure the host account exists, prompting creation if missing. *)
 let rec ensure_host_account () =
   if Auth.host_exists () then true
   else
@@ -283,6 +300,7 @@ let rec ensure_host_account () =
               ~body:msg ();
             ensure_host_account ())
 
+(** Prompt for a password for [username], looping on failure until success or cancel. *)
 let rec authenticate username =
   match
     prompt_text ~password:true ~title:("Authenticate " ^ username)
@@ -296,6 +314,7 @@ let rec authenticate username =
           ~body:"Incorrect password. Try again." ();
         authenticate username)
 
+(** Let a user review and respond to their pending invitations. *)
 let rec review_invitations username =
   let invitations = Storage.get_invitations_for_user username in
   match invitations with
@@ -388,6 +407,7 @@ let rec review_invitations username =
       in
       loop 0
 
+(** Guide a user through entering invitation details and enqueue the invite if valid. *)
 let rec schedule_meeting_gui organizer_name =
   let open Option in
   match
@@ -453,6 +473,7 @@ let rec schedule_meeting_gui organizer_name =
                 ~body:"Please use YYYY-MM-DD and HH:MM formats." ();
               schedule_meeting_gui organizer_name))
 
+(** Host dashboard for meetings overview, pending invites, and navigation. *)
 let rec host_dashboard () =
   let meetings = Storage.get_all_meetings () in
   let pending = Storage.get_invitations_for_user "host" in
@@ -523,6 +544,7 @@ let rec host_dashboard () =
   | "logout" -> ()
   | _ -> host_dashboard ()
 
+(** Attendee dashboard showing personal meetings and invitation actions. *)
 let rec attendee_dashboard username =
   let meetings = Storage.get_meetings_for_user username in
   let pending = Storage.get_invitations_for_user username in
@@ -593,6 +615,7 @@ let rec attendee_dashboard username =
   | "logout" -> ()
   | _ -> attendee_dashboard username
 
+(** Enter host mode by ensuring the host account, authenticating, then opening the dashboard. *)
 let rec enter_host_mode () =
   if not (ensure_host_account ()) then ()
   else
@@ -602,6 +625,7 @@ let rec enter_host_mode () =
         review_invitations "host";
         host_dashboard ()
 
+(** Enter attendee mode by authenticating existing users or creating a new account. *)
 let rec enter_attendee_mode () =
   match
     prompt_text ~title:"Attendee login"
@@ -637,6 +661,7 @@ let rec enter_attendee_mode () =
                   ~body:msg ();
                 enter_attendee_mode ()))
 
+(** Landing menu for choosing host mode, attendee mode, or exiting the app. *)
 let rec main_menu () =
   clear_canvas ();
   draw_title ~title:"Git Pushin Calendar"
@@ -691,6 +716,7 @@ let rec main_menu () =
   | "exit" -> safe_close ()
   | _ -> main_menu ()
 
+(** Open the graphics window, run the main menu loop, and close safely on exit or error. *)
 let run () =
   try
     open_graph (Printf.sprintf " %dx%d" window_w window_h);
