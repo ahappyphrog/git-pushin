@@ -21,13 +21,16 @@ val handle_pending_invitations : string -> unit
 (** Allow the given user to accept or decline pending invitations. *)
 
 val host_dashboard : unit -> unit
-(** Host dashboard with meeting, invitation review, and invitation sending controls. *)
+(** Host dashboard with meeting, invitation review, and invitation sending
+    controls. *)
 
 val attendee_dashboard : string -> unit
-(** Attendee dashboard with meeting views, invitation review, and invitation sending. *)
+(** Attendee dashboard with meeting views, invitation review, and invitation
+    sending. *)
 
 val enter_host_mode : unit -> unit
-(** Authenticate as host (creating credentials if needed) and open the dashboard. *)
+(** Authenticate as host (creating credentials if needed) and open the
+    dashboard. *)
 
 val enter_attendee_mode : unit -> unit
 (** Authenticate or create an attendee account and open the dashboard. *)

@@ -24,7 +24,8 @@ val json_to_meeting : Yojson.Basic.t -> meeting
 (** Parse a JSON value into a [meeting], filling legacy data when needed. *)
 
 val load_meetings : unit -> meeting list
-(** Load all meetings from disk. Returns an empty list when the file does not exist or is unreadable. *)
+(** Load all meetings from disk. Returns an empty list when the file does not
+    exist or is unreadable. *)
 
 val save_meetings : meeting list -> unit
 (** Persist all provided meetings to disk. *)
@@ -56,7 +57,8 @@ val json_to_user : Yojson.Basic.t -> user
 (** Parse a JSON value into a [user]. *)
 
 val load_users : unit -> user list
-(** Load all users from disk. Returns an empty list when the file does not exist or is unreadable. *)
+(** Load all users from disk. Returns an empty list when the file does not exist
+    or is unreadable. *)
 
 val save_users : user list -> unit
 (** Persist all provided users to disk. *)
@@ -65,11 +67,12 @@ val host_exists : unit -> bool
 (** Check if a user with Host role exists. *)
 
 val add_user : string -> string -> role -> (user, string) result
-(** [add_user username password role] creates a new user with the given credentials and role.
-    Returns [Error] if the username already exists. *)
+(** [add_user username password role] creates a new user with the given
+    credentials and role. Returns [Error] if the username already exists. *)
 
 val authenticate_user : string -> string -> user option
-(** [authenticate_user username password] verifies credentials and returns the user if valid. *)
+(** [authenticate_user username password] verifies credentials and returns the
+    user if valid. *)
 
 (** {1 Invitation Management} *)
 

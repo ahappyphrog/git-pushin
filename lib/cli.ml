@@ -105,7 +105,9 @@ let rec read_date prompt =
     read_date prompt
 
 let rec prompt_invitee current_user =
-  print_string "Enter the username you would like to meet with (or leave blank to cancel): ";
+  print_string
+    "Enter the username you would like to meet with (or leave blank to \
+     cancel): ";
   flush stdout;
   let invitee = read_line () |> String.trim in
   if String.length invitee = 0 then None
@@ -124,22 +126,33 @@ let rec schedule_meeting_for name =
       let end_time = read_time "Enter end time" in
 
       let meeting =
-        { organizer_name = name; attendee_name = invitee; date; start_time; end_time }
+        {
+          organizer_name = name;
+          attendee_name = invitee;
+          date;
+          start_time;
+          end_time;
+        }
       in
       if not (is_valid_interval start_time end_time) then
         print_endline
-          "Invalid time interval. Start time must be before end time. Invitation not sent."
+          "Invalid time interval. Start time must be before end time. \
+           Invitation not sent."
       else
         let existing_meetings = Storage.get_all_meetings () in
         if Scheduler.has_conflict meeting existing_meetings then
           print_endline
-            "A conflicting meeting already exists for you or the invitee. Invitation not sent."
+            "A conflicting meeting already exists for you or the invitee. \
+             Invitation not sent."
         else (
           Storage.add_invitation meeting;
-          Printf.printf "\nInvitation sent to %s. They will be prompted to accept.\n" invitee;
+          Printf.printf
+            "\nInvitation sent to %s. They will be prompted to accept.\n"
+            invitee;
           if not (Auth.user_exists invitee) then
             print_endline
-              "The invitee is new to the system and will be asked to accept upon account creation.";
+              "The invitee is new to the system and will be asked to accept \
+               upon account creation.";
           ())
 
 let show_attendee_meetings name =
@@ -171,20 +184,20 @@ let rec handle_pending_invitations username =
       print_endline "\nPending invitations:";
       List.iter
         (fun inv ->
-          Printf.printf "\nFrom %s: %s\n" inv.organizer_name (string_of_meeting inv);
+          Printf.printf "\nFrom %s: %s\n" inv.organizer_name
+            (string_of_meeting inv);
           let rec prompt_response () =
             print_string "Accept this invitation? (y/n/skip): ";
             flush stdout;
             match read_line () with
-            | "y" | "Y" ->
-                begin
-                  match Scheduler.schedule_meeting inv with
-                  | Ok _ ->
-                      Storage.remove_invitation (fun candidate -> candidate = inv);
-                      print_endline "Invitation accepted and meeting scheduled."
-                  | Error msg ->
-                      Printf.printf "Unable to schedule meeting: %s\n" msg
-                end
+            | "y" | "Y" -> begin
+                match Scheduler.schedule_meeting inv with
+                | Ok _ ->
+                    Storage.remove_invitation (fun candidate -> candidate = inv);
+                    print_endline "Invitation accepted and meeting scheduled."
+                | Error msg ->
+                    Printf.printf "Unable to schedule meeting: %s\n" msg
+              end
             | "n" | "N" ->
                 Storage.remove_invitation (fun candidate -> candidate = inv);
                 print_endline "Invitation declined."
