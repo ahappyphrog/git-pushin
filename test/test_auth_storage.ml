@@ -70,6 +70,40 @@ let mk_date y m d = { year = y; month = m; day = d }
 let mk_meeting ?(organizer = "host") attendee date start_time end_time =
   { organizer_name = organizer; attendee_name = attendee; date; start_time; end_time }
 
+let test_auth_create_and_verify_user _ =
+  with_tmp_dir "auth_create" @@ fun () ->
+  assert_bool "user should not exist initially" (not (Auth.user_exists "alice"));
+  (match Auth.create_user "alice" "s3cret" with
+  | Ok _ -> ()
+  | Error msg -> assert_failure msg);
+  assert_bool "user should exist after creation" (Auth.user_exists "alice");
+  assert_bool "correct password verifies" (Auth.verify_user_password "alice" "s3cret");
+  assert_bool "wrong password rejected" (not (Auth.verify_user_password "alice" "wrong"))
+
+let test_auth_rejects_duplicate_usernames _ =
+  with_tmp_dir "auth_duplicate" @@ fun () ->
+  ignore (Auth.create_user "bob" "pw1");
+  match Auth.create_user "bob" "pw2" with
+  | Error _ -> ()
+  | Ok _ -> assert_failure "expected duplicate username to fail"
+
+let test_auth_host_exists_flag _ =
+  with_tmp_dir "auth_host_flag" @@ fun () ->
+  assert_bool "host missing initially" (not (Auth.host_exists ()));
+  ignore (Auth.create_user "host" "admin");
+  assert_bool "host now registered" (Auth.host_exists ());
+  assert_bool "host password works" (Auth.verify_user_password "host" "admin")
+
+let test_auth_persistence_file_format _ =
+  with_tmp_dir "auth_disk" @@ fun () ->
+  ignore (Auth.create_user "carol" "diskpass");
+  let json = Yojson.Basic.from_file "passwords.json" in
+  match Yojson.Basic.Util.to_assoc json with
+  | [ ("carol", `String hash) ] ->
+      assert_bool "hash should not store plaintext" (hash <> "diskpass");
+      assert_bool "hash should include salt delimiter" (String.contains hash ':')
+  | _ -> assert_failure "unexpected JSON format for passwords"
+
 let test_user_lifecycle _ =
   with_tmp_dir "users" @@ fun () ->
   assert_bool "no host initially" (not (Storage.host_exists ()));
@@ -373,8 +407,12 @@ let suite =
          "empty_password" >:: test_empty_password;
          "long_password" >:: test_long_password;
          "special_chars_password" >:: test_special_chars_password;
-         "hash_format" >:: test_hash_format;
-         "special_chars_username" >:: test_special_chars_username;
+       "hash_format" >:: test_hash_format;
+       "auth_create_and_verify" >:: test_auth_create_and_verify_user;
+       "auth_duplicate_usernames" >:: test_auth_rejects_duplicate_usernames;
+       "auth_host_exists_flag" >:: test_auth_host_exists_flag;
+       "auth_persistence_file_format" >:: test_auth_persistence_file_format;
+       "special_chars_username" >:: test_special_chars_username;
          "empty_username" >:: test_empty_username;
          "meetings_for_nonexistent_user" >:: test_meetings_for_nonexistent_user;
          "multiple_users" >:: test_multiple_users;
