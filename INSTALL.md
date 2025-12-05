@@ -8,7 +8,7 @@ Install required OCaml packages via opam:
 opam install dune yojson graphics
 ```
 
-### macOS GUI Support (XQuartz)
+### macOS GUI Support (XQuartz) 
 For GUI mode on macOS, install and run XQuartz:
 ```bash
 brew install --cask xquartz
@@ -16,6 +16,8 @@ brew install --cask xquartz
 open -a XQuartz
 
 export DISPLAY=:0
+# If XQuartz doesnt open automatically, open the app yourself on mac
+# If you get any GUI errors, try closing and relaunching XQuartz
 ```
 
 ## Setup
@@ -30,8 +32,7 @@ dune build
 
 ## Run the app
 
-```bash
-dune exec git-pushin
-```
+- GUI (default): `dune exec git-pushin`
+- CLI: `dune exec git-pushin -- --cli`
 
 Any events collected are stored in `meetings.json`.

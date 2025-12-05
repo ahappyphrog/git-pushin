@@ -1,0 +1,2 @@
+We decided to include cli.ml and all CLI related files in our LOC count because it is one of our features of this project.
+To play it safe we are also still over the required LOC without including it.
