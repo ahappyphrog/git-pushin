@@ -19,7 +19,9 @@ type meeting = {
 
 type invitation = meeting
 
-type role = Host | Attendee
+type role =
+  | Host
+  | Attendee
 
 type user = {
   username : string;
@@ -33,7 +35,8 @@ let string_of_date d = Printf.sprintf "%04d-%02d-%02d" d.year d.month d.day
 
 let string_of_meeting m =
   Printf.sprintf "%s <-> %s on %s from %s to %s" m.organizer_name
-    m.attendee_name (string_of_date m.date) (string_of_time m.start_time)
+    m.attendee_name (string_of_date m.date)
+    (string_of_time m.start_time)
     (string_of_time m.end_time)
 
 (* Convert time to minutes since midnight for easy comparison *)
@@ -52,8 +55,7 @@ let compare_date d1 d2 =
   | x -> x
 
 (* Check if a time interval is valid *)
-let is_valid_interval start_time end_time =
-  compare_time start_time end_time < 0
+let is_valid_interval start_time end_time = compare_time start_time end_time < 0
 
 (* Check if two meetings overlap *)
 let meetings_overlap m1 m2 =

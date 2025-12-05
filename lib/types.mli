@@ -20,13 +20,17 @@ type meeting = {
   start_time : time;
   end_time : time;
 }
-(** A scheduled meeting between an organizer and attendee on a specific date/time. *)
+(** A scheduled meeting between an organizer and attendee on a specific
+    date/time. *)
 
 type invitation = meeting
 (** Pending meetings awaiting acceptance by the invitee. *)
 
-type role = Host | Attendee
-(** User role: Host can manage meetings, Attendee can only view their own. *)
+type role =
+  | Host
+  | Attendee
+      (** User role: Host can manage meetings, Attendee can only view their own.
+      *)
 
 type user = {
   username : string;
@@ -54,7 +58,8 @@ val compare_date : date -> date -> int
 (** Compare two dates by year, month, then day. *)
 
 val is_valid_interval : time -> time -> bool
-(** [is_valid_interval start_time end_time] is [true] when [start_time] occurs before [end_time]. *)
+(** [is_valid_interval start_time end_time] is [true] when [start_time] occurs
+    before [end_time]. *)
 
 val meetings_overlap : meeting -> meeting -> bool
 (** Detect whether two meetings on the same date overlap in time. *)

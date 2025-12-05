@@ -4,8 +4,15 @@ open Git_pushin
 
 let mk_time hours minutes = { hours; minutes }
 let mk_date year month day = { year; month; day }
+
 let mk_meeting ?(organizer = "host") attendee date start_time end_time =
-  { organizer_name = organizer; attendee_name = attendee; date; start_time; end_time }
+  {
+    organizer_name = organizer;
+    attendee_name = attendee;
+    date;
+    start_time;
+    end_time;
+  }
 
 let safe_remove path = try Sys.remove path with _ -> ()
 
@@ -17,7 +24,9 @@ let with_tmp_dir prefix f =
   Sys.chdir dir;
   let cleanup () =
     Sys.chdir cwd;
-    Array.iter (fun file -> safe_remove (Filename.concat dir file)) (Sys.readdir dir);
+    Array.iter
+      (fun file -> safe_remove (Filename.concat dir file))
+      (Sys.readdir dir);
     try Unix.rmdir dir with _ -> ()
   in
   match f () with
@@ -34,8 +43,14 @@ let assert_meeting_equal expected actual =
 let test_string_formatting _ =
   assert_equal ~printer:(fun x -> x) "09:05" (string_of_time (mk_time 9 5));
   assert_equal ~printer:(fun x -> x) "23:59" (string_of_time (mk_time 23 59));
-  assert_equal ~printer:(fun x -> x) "2024-12-31" (string_of_date (mk_date 2024 12 31));
-  assert_equal ~printer:(fun x -> x) "1900-01-01" (string_of_date (mk_date 1900 1 1))
+  assert_equal
+    ~printer:(fun x -> x)
+    "2024-12-31"
+    (string_of_date (mk_date 2024 12 31));
+  assert_equal
+    ~printer:(fun x -> x)
+    "1900-01-01"
+    (string_of_date (mk_date 1900 1 1))
 
 let test_compare_date _ =
   let d1 = mk_date 2024 1 1 in
@@ -106,7 +121,9 @@ let test_schedule_invalid_interval _ =
 let test_schedule_conflict_and_success _ =
   with_tmp_dir "sched_conflict" @@ fun () ->
   let date = mk_date 2024 7 7 in
-  let existing = mk_meeting ~organizer:"host" "frank" date (mk_time 9 0) (mk_time 10 0) in
+  let existing =
+    mk_meeting ~organizer:"host" "frank" date (mk_time 9 0) (mk_time 10 0)
+  in
   Storage.save_meetings [ existing ];
   let conflict =
     mk_meeting ~organizer:"host" "grace" date (mk_time 9 15) (mk_time 9 45)
@@ -166,8 +183,10 @@ let test_date_leap_year _ =
   let feb28_2024 = mk_date 2024 2 28 in
   let feb29_2024 = mk_date 2024 2 29 in
   let mar1_2024 = mk_date 2024 3 1 in
-  assert_bool "Feb 28 < Feb 29 (leap year)" (compare_date feb28_2024 feb29_2024 < 0);
-  assert_bool "Feb 29 < Mar 1 (leap year)" (compare_date feb29_2024 mar1_2024 < 0)
+  assert_bool "Feb 28 < Feb 29 (leap year)"
+    (compare_date feb28_2024 feb29_2024 < 0);
+  assert_bool "Feb 29 < Mar 1 (leap year)"
+    (compare_date feb29_2024 mar1_2024 < 0)
 
 let test_meeting_overlap_same_times _ =
   let date = mk_date 2024 5 10 in
@@ -179,8 +198,10 @@ let test_meeting_overlap_containment _ =
   let date = mk_date 2024 5 10 in
   let outer = mk_meeting "alice" date (mk_time 9 0) (mk_time 12 0) in
   let inner = mk_meeting "bob" date (mk_time 10 0) (mk_time 11 0) in
-  assert_bool "inner meeting should overlap with outer" (meetings_overlap outer inner);
-  assert_bool "outer meeting should overlap with inner" (meetings_overlap inner outer)
+  assert_bool "inner meeting should overlap with outer"
+    (meetings_overlap outer inner);
+  assert_bool "outer meeting should overlap with inner"
+    (meetings_overlap inner outer)
 
 let test_meeting_overlap_partial _ =
   let date = mk_date 2024 5 10 in
@@ -190,17 +211,30 @@ let test_meeting_overlap_partial _ =
 
 let test_participants_sharing _ =
   let date = mk_date 2024 6 1 in
-  let m1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let m2_shared_organizer = mk_meeting ~organizer:"alice" "carol" date (mk_time 9 0) (mk_time 10 0) in
-  let m3_shared_attendee = mk_meeting ~organizer:"dave" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let m4_no_share = mk_meeting ~organizer:"eve" "frank" date (mk_time 9 0) (mk_time 10 0) in
-  assert_bool "shared organizer" (Scheduler.share_participant m1 m2_shared_organizer);
-  assert_bool "shared attendee" (Scheduler.share_participant m1 m3_shared_attendee);
-  assert_bool "no shared participants" (not (Scheduler.share_participant m1 m4_no_share))
+  let m1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2_shared_organizer =
+    mk_meeting ~organizer:"alice" "carol" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m3_shared_attendee =
+    mk_meeting ~organizer:"dave" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m4_no_share =
+    mk_meeting ~organizer:"eve" "frank" date (mk_time 9 0) (mk_time 10 0)
+  in
+  assert_bool "shared organizer"
+    (Scheduler.share_participant m1 m2_shared_organizer);
+  assert_bool "shared attendee"
+    (Scheduler.share_participant m1 m3_shared_attendee);
+  assert_bool "no shared participants"
+    (not (Scheduler.share_participant m1 m4_no_share))
 
 let test_schedule_to_empty_list _ =
   with_tmp_dir "empty_schedule" @@ fun () ->
-  let meeting = mk_meeting "first" (mk_date 2024 8 1) (mk_time 9 0) (mk_time 10 0) in
+  let meeting =
+    mk_meeting "first" (mk_date 2024 8 1) (mk_time 9 0) (mk_time 10 0)
+  in
   match Scheduler.schedule_meeting meeting with
   | Ok _ ->
       let all = Storage.get_all_meetings () in
@@ -210,41 +244,59 @@ let test_schedule_to_empty_list _ =
 let test_schedule_multiple_sequential _ =
   with_tmp_dir "sequential" @@ fun () ->
   let date = mk_date 2024 8 15 in
-  let m1 = mk_meeting ~organizer:"host" "alice" date (mk_time 9 0) (mk_time 10 0) in
-  let m2 = mk_meeting ~organizer:"host" "bob" date (mk_time 10 0) (mk_time 11 0) in
-  let m3 = mk_meeting ~organizer:"host" "carol" date (mk_time 11 0) (mk_time 12 0) in
+  let m1 =
+    mk_meeting ~organizer:"host" "alice" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"host" "bob" date (mk_time 10 0) (mk_time 11 0)
+  in
+  let m3 =
+    mk_meeting ~organizer:"host" "carol" date (mk_time 11 0) (mk_time 12 0)
+  in
   (match Scheduler.schedule_meeting m1 with
-   | Ok _ -> ()
-   | Error e -> assert_failure ("m1 failed: " ^ e));
+  | Ok _ -> ()
+  | Error e -> assert_failure ("m1 failed: " ^ e));
   (match Scheduler.schedule_meeting m2 with
-   | Ok _ -> ()
-   | Error e -> assert_failure ("m2 failed: " ^ e));
+  | Ok _ -> ()
+  | Error e -> assert_failure ("m2 failed: " ^ e));
   (match Scheduler.schedule_meeting m3 with
-   | Ok _ -> ()
-   | Error e -> assert_failure ("m3 failed: " ^ e));
+  | Ok _ -> ()
+  | Error e -> assert_failure ("m3 failed: " ^ e));
   let all = Storage.get_all_meetings () in
   assert_equal ~printer:string_of_int 3 (List.length all)
 
 let test_schedule_same_person_conflict _ =
   with_tmp_dir "self_conflict" @@ fun () ->
   let date = mk_date 2024 9 1 in
-  let m1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let m2 = mk_meeting ~organizer:"alice" "carol" date (mk_time 9 30) (mk_time 10 30) in
+  let m1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"alice" "carol" date (mk_time 9 30) (mk_time 10 30)
+  in
   Storage.save_meetings [ m1 ];
   match Scheduler.schedule_meeting m2 with
   | Error _ -> ()
   | Ok _ -> assert_failure "Same organizer should have conflict"
 
 let test_meeting_string_format _ =
-  let meeting = mk_meeting ~organizer:"alice" "bob" (mk_date 2024 10 5) (mk_time 14 30) (mk_time 15 45) in
+  let meeting =
+    mk_meeting ~organizer:"alice" "bob" (mk_date 2024 10 5) (mk_time 14 30)
+      (mk_time 15 45)
+  in
   let str = string_of_meeting meeting in
   assert_bool "should contain organizer" (String.length str > 0);
-  assert_bool "should contain alice" (Str.string_match (Str.regexp ".*alice.*") str 0);
-  assert_bool "should contain bob" (Str.string_match (Str.regexp ".*bob.*") str 0);
-  assert_bool "should contain date" (Str.string_match (Str.regexp ".*2024-10-05.*") str 0)
+  assert_bool "should contain alice"
+    (Str.string_match (Str.regexp ".*alice.*") str 0);
+  assert_bool "should contain bob"
+    (Str.string_match (Str.regexp ".*bob.*") str 0);
+  assert_bool "should contain date"
+    (Str.string_match (Str.regexp ".*2024-10-05.*") str 0)
 
 let test_cross_day_no_overlap _ =
-  let m1 = mk_meeting "alice" (mk_date 2024 10 1) (mk_time 23 0) (mk_time 23 59) in
+  let m1 =
+    mk_meeting "alice" (mk_date 2024 10 1) (mk_time 23 0) (mk_time 23 59)
+  in
   let m2 = mk_meeting "bob" (mk_date 2024 10 2) (mk_time 0 0) (mk_time 1 0) in
   assert_bool "meetings on different days should not overlap"
     (not (meetings_overlap m1 m2))
@@ -264,12 +316,14 @@ let test_date_json_roundtrip _ =
 let test_very_long_meeting _ =
   let start = mk_time 0 0 in
   let end_time = mk_time 23 59 in
-  assert_bool "all-day meeting should be valid" (is_valid_interval start end_time)
+  assert_bool "all-day meeting should be valid"
+    (is_valid_interval start end_time)
 
 let test_one_minute_meeting _ =
   let start = mk_time 10 0 in
   let end_time = mk_time 10 1 in
-  assert_bool "1-minute meeting should be valid" (is_valid_interval start end_time)
+  assert_bool "1-minute meeting should be valid"
+    (is_valid_interval start end_time)
 
 let test_meeting_at_midnight _ =
   let date = mk_date 2024 12 1 in
@@ -298,9 +352,15 @@ let test_same_month_different_years _ =
 let test_multiple_overlapping_conflicts _ =
   with_tmp_dir "multi_conflict" @@ fun () ->
   let date = mk_date 2024 11 1 in
-  let m1 = mk_meeting ~organizer:"host" "alice" date (mk_time 9 0) (mk_time 10 0) in
-  let m2 = mk_meeting ~organizer:"host" "bob" date (mk_time 9 15) (mk_time 9 45) in
-  let m3 = mk_meeting ~organizer:"host" "carol" date (mk_time 9 30) (mk_time 10 30) in
+  let m1 =
+    mk_meeting ~organizer:"host" "alice" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"host" "bob" date (mk_time 9 15) (mk_time 9 45)
+  in
+  let m3 =
+    mk_meeting ~organizer:"host" "carol" date (mk_time 9 30) (mk_time 10 30)
+  in
   Storage.save_meetings [ m1; m2 ];
   match Scheduler.schedule_meeting m3 with
   | Error _ -> ()
@@ -309,8 +369,12 @@ let test_multiple_overlapping_conflicts _ =
 let test_attendee_conflict _ =
   with_tmp_dir "attendee_conflict" @@ fun () ->
   let date = mk_date 2024 11 15 in
-  let m1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 10 0) (mk_time 11 0) in
-  let m2 = mk_meeting ~organizer:"carol" "bob" date (mk_time 10 30) (mk_time 11 30) in
+  let m1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 10 0) (mk_time 11 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"carol" "bob" date (mk_time 10 30) (mk_time 11 30)
+  in
   Storage.save_meetings [ m1 ];
   match Scheduler.schedule_meeting m2 with
   | Error _ -> ()
@@ -329,8 +393,14 @@ let test_meeting_no_overlap_one_minute_gap _ =
   assert_bool "one minute gap should not overlap" (not (meetings_overlap m1 m2))
 
 let test_date_formatting_edge_cases _ =
-  assert_equal ~printer:(fun x -> x) "0001-01-01" (string_of_date (mk_date 1 1 1));
-  assert_equal ~printer:(fun x -> x) "9999-12-31" (string_of_date (mk_date 9999 12 31))
+  assert_equal
+    ~printer:(fun x -> x)
+    "0001-01-01"
+    (string_of_date (mk_date 1 1 1));
+  assert_equal
+    ~printer:(fun x -> x)
+    "9999-12-31"
+    (string_of_date (mk_date 9999 12 31))
 
 let test_compare_date_same_year_different_months _ =
   let jan = mk_date 2024 1 15 in
@@ -349,32 +419,49 @@ let test_compare_date_same_year_month_different_days _ =
 
 let test_has_conflict_with_empty_list _ =
   let date = mk_date 2024 12 1 in
-  let meeting = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  assert_bool "no conflict with empty list" (not (Scheduler.has_conflict meeting []))
+  let meeting =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  assert_bool "no conflict with empty list"
+    (not (Scheduler.has_conflict meeting []))
 
 let test_has_conflict_with_many_meetings _ =
   let date = mk_date 2024 12 5 in
-  let existing = List.init 20 (fun i ->
-    mk_meeting ~organizer:"host" ("user" ^ string_of_int i) date
-      (mk_time (i mod 10 + 8) 0)
-      (mk_time (i mod 10 + 9) 0)
-  ) in
-  let conflicting = mk_meeting ~organizer:"host" "newuser" date (mk_time 10 30) (mk_time 11 30) in
-  let non_conflicting = mk_meeting ~organizer:"other" "newuser" date (mk_time 10 30) (mk_time 11 30) in
+  let existing =
+    List.init 20 (fun i ->
+        mk_meeting ~organizer:"host"
+          ("user" ^ string_of_int i)
+          date
+          (mk_time ((i mod 10) + 8) 0)
+          (mk_time ((i mod 10) + 9) 0))
+  in
+  let conflicting =
+    mk_meeting ~organizer:"host" "newuser" date (mk_time 10 30) (mk_time 11 30)
+  in
+  let non_conflicting =
+    mk_meeting ~organizer:"other" "newuser" date (mk_time 10 30) (mk_time 11 30)
+  in
   assert_bool "should find conflict in many meetings"
     (Scheduler.has_conflict conflicting existing);
   assert_bool "should not conflict with different participants"
     (not (Scheduler.has_conflict non_conflicting existing))
 
 let test_meeting_string_contains_all_info _ =
-  let meeting = mk_meeting ~organizer:"organizer" "attendee"
-                  (mk_date 2024 6 15) (mk_time 9 30) (mk_time 10 45) in
+  let meeting =
+    mk_meeting ~organizer:"organizer" "attendee" (mk_date 2024 6 15)
+      (mk_time 9 30) (mk_time 10 45)
+  in
   let str = string_of_meeting meeting in
-  assert_bool "contains organizer" (Str.string_match (Str.regexp ".*organizer.*") str 0);
-  assert_bool "contains attendee" (Str.string_match (Str.regexp ".*attendee.*") str 0);
-  assert_bool "contains date" (Str.string_match (Str.regexp ".*2024-06-15.*") str 0);
-  assert_bool "contains start time" (Str.string_match (Str.regexp ".*09:30.*") str 0);
-  assert_bool "contains end time" (Str.string_match (Str.regexp ".*10:45.*") str 0)
+  assert_bool "contains organizer"
+    (Str.string_match (Str.regexp ".*organizer.*") str 0);
+  assert_bool "contains attendee"
+    (Str.string_match (Str.regexp ".*attendee.*") str 0);
+  assert_bool "contains date"
+    (Str.string_match (Str.regexp ".*2024-06-15.*") str 0);
+  assert_bool "contains start time"
+    (Str.string_match (Str.regexp ".*09:30.*") str 0);
+  assert_bool "contains end time"
+    (Str.string_match (Str.regexp ".*10:45.*") str 0)
 
 let test_time_minutes_boundary_values _ =
   assert_equal ~printer:string_of_int 0 (time_to_minutes (mk_time 0 0));
@@ -392,8 +479,12 @@ let test_compare_time_boundary _ =
 
 let test_share_participant_both_ways _ =
   let date = mk_date 2024 8 1 in
-  let m1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let m2 = mk_meeting ~organizer:"bob" "carol" date (mk_time 9 0) (mk_time 10 0) in
+  let m1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"bob" "carol" date (mk_time 9 0) (mk_time 10 0)
+  in
   assert_bool "bob is in both meetings" (Scheduler.share_participant m1 m2);
   assert_bool "symmetric" (Scheduler.share_participant m2 m1)
 
@@ -430,16 +521,22 @@ let suite =
          "meeting_ending_at_23_59" >:: test_meeting_ending_at_23_59;
          "year_boundaries" >:: test_year_boundaries;
          "same_month_different_years" >:: test_same_month_different_years;
-         "multiple_overlapping_conflicts" >:: test_multiple_overlapping_conflicts;
+         "multiple_overlapping_conflicts"
+         >:: test_multiple_overlapping_conflicts;
          "attendee_conflict" >:: test_attendee_conflict;
          "meeting_overlap_one_minute" >:: test_meeting_overlap_one_minute;
-         "meeting_no_overlap_one_minute_gap" >:: test_meeting_no_overlap_one_minute_gap;
+         "meeting_no_overlap_one_minute_gap"
+         >:: test_meeting_no_overlap_one_minute_gap;
          "date_formatting_edge_cases" >:: test_date_formatting_edge_cases;
-         "compare_date_same_year_different_months" >:: test_compare_date_same_year_different_months;
-         "compare_date_same_year_month_different_days" >:: test_compare_date_same_year_month_different_days;
+         "compare_date_same_year_different_months"
+         >:: test_compare_date_same_year_different_months;
+         "compare_date_same_year_month_different_days"
+         >:: test_compare_date_same_year_month_different_days;
          "has_conflict_with_empty_list" >:: test_has_conflict_with_empty_list;
-         "has_conflict_with_many_meetings" >:: test_has_conflict_with_many_meetings;
-         "meeting_string_contains_all_info" >:: test_meeting_string_contains_all_info;
+         "has_conflict_with_many_meetings"
+         >:: test_has_conflict_with_many_meetings;
+         "meeting_string_contains_all_info"
+         >:: test_meeting_string_contains_all_info;
          "time_minutes_boundary_values" >:: test_time_minutes_boundary_values;
          "compare_time_boundary" >:: test_compare_time_boundary;
          "share_participant_both_ways" >:: test_share_participant_both_ways;

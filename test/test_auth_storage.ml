@@ -3,13 +3,22 @@ open Git_pushin.Types
 open Git_pushin
 
 (* Printer functions for assert_equal *)
-let string_of_int_list lst = "[" ^ String.concat "; " (List.map string_of_int lst) ^ "]"
+let string_of_int_list lst =
+  "[" ^ String.concat "; " (List.map string_of_int lst) ^ "]"
+
 let string_of_option f = function
   | Some x -> "Some (" ^ f x ^ ")"
   | None -> "None"
-let string_of_user u = Printf.sprintf "{username=%s; role=%s}" u.username
-  (match u.role with Host -> "Host" | Attendee -> "Attendee")
-let string_of_role = function Host -> "Host" | Attendee -> "Attendee"
+
+let string_of_user u =
+  Printf.sprintf "{username=%s; role=%s}" u.username
+    (match u.role with
+    | Host -> "Host"
+    | Attendee -> "Attendee")
+
+let string_of_role = function
+  | Host -> "Host"
+  | Attendee -> "Attendee"
 
 let safe_remove path = try Sys.remove path with _ -> ()
 
@@ -21,7 +30,9 @@ let with_tmp_dir prefix f =
   Sys.chdir dir;
   let cleanup () =
     Sys.chdir cwd;
-    Array.iter (fun file -> safe_remove (Filename.concat dir file)) (Sys.readdir dir);
+    Array.iter
+      (fun file -> safe_remove (Filename.concat dir file))
+      (Sys.readdir dir);
     try Unix.rmdir dir with _ -> ()
   in
   match f () with
@@ -35,7 +46,8 @@ let with_tmp_dir prefix f =
 let test_hash_verification _ =
   let hash = Auth.hash_password "supersecret" in
   assert_bool "password should verify" (Auth.verify_password hash "supersecret");
-  assert_bool "wrong password should fail" (not (Auth.verify_password hash "badpass"))
+  assert_bool "wrong password should fail"
+    (not (Auth.verify_password hash "badpass"))
 
 let test_hash_salt_uniqueness _ =
   let h1 = Auth.hash_password "samepassword" in
@@ -57,8 +69,7 @@ let test_hash_tampering _ =
     (not (Auth.verify_password tampered "hardened"));
   let tampered_salt =
     match String.split_on_char ':' hash with
-    | _salt :: rest ->
-        String.concat ":" ("deadbeefdeadbeef" :: rest)
+    | _salt :: rest -> String.concat ":" ("deadbeefdeadbeef" :: rest)
     | _ -> assert_failure "hash format missing salt"
   in
   assert_bool "tampered salt fails verification"
@@ -68,7 +79,13 @@ let mk_time h m = { hours = h; minutes = m }
 let mk_date y m d = { year = y; month = m; day = d }
 
 let mk_meeting ?(organizer = "host") attendee date start_time end_time =
-  { organizer_name = organizer; attendee_name = attendee; date; start_time; end_time }
+  {
+    organizer_name = organizer;
+    attendee_name = attendee;
+    date;
+    start_time;
+    end_time;
+  }
 
 let test_auth_create_and_verify_user _ =
   with_tmp_dir "auth_create" @@ fun () ->
@@ -77,8 +94,10 @@ let test_auth_create_and_verify_user _ =
   | Ok _ -> ()
   | Error msg -> assert_failure msg);
   assert_bool "user should exist after creation" (Auth.user_exists "alice");
-  assert_bool "correct password verifies" (Auth.verify_user_password "alice" "s3cret");
-  assert_bool "wrong password rejected" (not (Auth.verify_user_password "alice" "wrong"))
+  assert_bool "correct password verifies"
+    (Auth.verify_user_password "alice" "s3cret");
+  assert_bool "wrong password rejected"
+    (not (Auth.verify_user_password "alice" "wrong"))
 
 let test_auth_rejects_duplicate_usernames _ =
   with_tmp_dir "auth_duplicate" @@ fun () ->
@@ -101,7 +120,8 @@ let test_auth_persistence_file_format _ =
   match Yojson.Basic.Util.to_assoc json with
   | [ ("carol", `String hash) ] ->
       assert_bool "hash should not store plaintext" (hash <> "diskpass");
-      assert_bool "hash should include salt delimiter" (String.contains hash ':')
+      assert_bool "hash should include salt delimiter"
+        (String.contains hash ':')
   | _ -> assert_failure "unexpected JSON format for passwords"
 
 let test_user_lifecycle _ =
@@ -111,7 +131,8 @@ let test_user_lifecycle _ =
   (match Storage.add_user "host" "topsecret" Host with
   | Ok u ->
       assert_equal ~printer:string_of_role Host u.role;
-      assert_bool "host hash is not plain password" (u.password_hash <> "topsecret");
+      assert_bool "host hash is not plain password"
+        (u.password_hash <> "topsecret");
       assert_bool "host now exists" (Storage.host_exists ())
   | Error _ -> assert_failure "expected to create host user");
   (match Storage.add_user "host" "newpass" Attendee with
@@ -124,8 +145,14 @@ let test_user_lifecycle _ =
     (match Storage.authenticate_user "host" "topsecret" with
     | Some u -> u.role = Host
     | None -> false);
-  assert_equal ~printer:(string_of_option string_of_user) None (Storage.authenticate_user "host" "wrongpass");
-  assert_equal ~printer:(string_of_option string_of_user) None (Storage.authenticate_user "nosuch" "letmein")
+  assert_equal
+    ~printer:(string_of_option string_of_user)
+    None
+    (Storage.authenticate_user "host" "wrongpass");
+  assert_equal
+    ~printer:(string_of_option string_of_user)
+    None
+    (Storage.authenticate_user "nosuch" "letmein")
 
 let test_meeting_persistence _ =
   with_tmp_dir "meetings" @@ fun () ->
@@ -200,23 +227,29 @@ let test_multiple_users _ =
   let _ = Storage.add_user "carol" "pass3" Attendee in
   assert_bool "alice authenticates"
     (match Storage.authenticate_user "alice" "pass1" with
-     | Some u -> u.role = Host
-     | None -> false);
+    | Some u -> u.role = Host
+    | None -> false);
   assert_bool "bob authenticates"
     (match Storage.authenticate_user "bob" "pass2" with
-     | Some u -> u.role = Attendee
-     | None -> false);
+    | Some u -> u.role = Attendee
+    | None -> false);
   assert_bool "carol authenticates"
     (match Storage.authenticate_user "carol" "pass3" with
-     | Some u -> u.role = Attendee
-     | None -> false)
+    | Some u -> u.role = Attendee
+    | None -> false)
 
 let test_invitation_workflow _ =
   with_tmp_dir "invitations" @@ fun () ->
   let date = mk_date 2025 3 15 in
-  let inv1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 10 0) (mk_time 11 0) in
-  let inv2 = mk_meeting ~organizer:"alice" "carol" date (mk_time 14 0) (mk_time 15 0) in
-  let inv3 = mk_meeting ~organizer:"dave" "bob" date (mk_time 16 0) (mk_time 17 0) in
+  let inv1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 10 0) (mk_time 11 0)
+  in
+  let inv2 =
+    mk_meeting ~organizer:"alice" "carol" date (mk_time 14 0) (mk_time 15 0)
+  in
+  let inv3 =
+    mk_meeting ~organizer:"dave" "bob" date (mk_time 16 0) (mk_time 17 0)
+  in
   Storage.add_invitation inv1;
   Storage.add_invitation inv2;
   Storage.add_invitation inv3;
@@ -233,9 +266,15 @@ let test_invitation_workflow _ =
 let test_meeting_organizer_retrieval _ =
   with_tmp_dir "organizer_meetings" @@ fun () ->
   let date = mk_date 2025 4 1 in
-  let m1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let m2 = mk_meeting ~organizer:"alice" "carol" date (mk_time 11 0) (mk_time 12 0) in
-  let m3 = mk_meeting ~organizer:"bob" "dave" date (mk_time 13 0) (mk_time 14 0) in
+  let m1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let m2 =
+    mk_meeting ~organizer:"alice" "carol" date (mk_time 11 0) (mk_time 12 0)
+  in
+  let m3 =
+    mk_meeting ~organizer:"bob" "dave" date (mk_time 13 0) (mk_time 14 0)
+  in
   Storage.add_meeting m1;
   Storage.add_meeting m2;
   Storage.add_meeting m3;
@@ -248,7 +287,8 @@ let test_role_json_roundtrip _ =
   let host_json = Storage.role_to_json Host in
   let attendee_json = Storage.role_to_json Attendee in
   assert_equal ~printer:string_of_role Host (Storage.json_to_role host_json);
-  assert_equal ~printer:string_of_role Attendee (Storage.json_to_role attendee_json)
+  assert_equal ~printer:string_of_role Attendee
+    (Storage.json_to_role attendee_json)
 
 let test_unicode_username _ =
   with_tmp_dir "unicode" @@ fun () ->
@@ -268,19 +308,28 @@ let test_authentication_case_sensitivity _ =
   let _ = Storage.add_user "Alice" "secret" Attendee in
   assert_bool "exact match should work"
     (match Storage.authenticate_user "Alice" "secret" with
-     | Some _ -> true
-     | None -> false);
-  assert_equal ~printer:(string_of_option string_of_user) None (Storage.authenticate_user "alice" "secret");
-  assert_equal ~printer:(string_of_option string_of_user) None (Storage.authenticate_user "ALICE" "secret")
+    | Some _ -> true
+    | None -> false);
+  assert_equal
+    ~printer:(string_of_option string_of_user)
+    None
+    (Storage.authenticate_user "alice" "secret");
+  assert_equal
+    ~printer:(string_of_option string_of_user)
+    None
+    (Storage.authenticate_user "ALICE" "secret")
 
 let test_empty_password_authentication _ =
   with_tmp_dir "empty_auth" @@ fun () ->
   let _ = Storage.add_user "user" "" Attendee in
   assert_bool "empty password should authenticate"
     (match Storage.authenticate_user "user" "" with
-     | Some _ -> true
-     | None -> false);
-  assert_equal ~printer:(string_of_option string_of_user) None (Storage.authenticate_user "user" "nonempty")
+    | Some _ -> true
+    | None -> false);
+  assert_equal
+    ~printer:(string_of_option string_of_user)
+    None
+    (Storage.authenticate_user "user" "nonempty")
 
 let test_multiple_host_attempts _ =
   with_tmp_dir "multi_host" @@ fun () ->
@@ -293,7 +342,9 @@ let test_multiple_host_attempts _ =
 
 let test_invitation_json_roundtrip _ =
   let date = mk_date 2025 5 20 in
-  let inv = mk_meeting ~organizer:"host" "guest" date (mk_time 15 0) (mk_time 16 0) in
+  let inv =
+    mk_meeting ~organizer:"host" "guest" date (mk_time 15 0) (mk_time 16 0)
+  in
   let json = Storage.meeting_to_json inv in
   let roundtrip = Storage.json_to_meeting json in
   assert_equal ~printer:(fun x -> x) inv.organizer_name roundtrip.organizer_name;
@@ -314,9 +365,13 @@ let test_storage_many_meetings _ =
   with_tmp_dir "many_meetings" @@ fun () ->
   let date = mk_date 2025 6 1 in
   for i = 0 to 49 do
-    let meeting = mk_meeting ("user" ^ string_of_int i) date
-                    (mk_time (i mod 14 + 8) 0)
-                    (mk_time (i mod 14 + 9) 0) in
+    let meeting =
+      mk_meeting
+        ("user" ^ string_of_int i)
+        date
+        (mk_time ((i mod 14) + 8) 0)
+        (mk_time ((i mod 14) + 9) 0)
+    in
     Storage.add_meeting meeting
   done;
   let all = Storage.get_all_meetings () in
@@ -325,18 +380,27 @@ let test_storage_many_meetings _ =
 let test_remove_invitations_complex_predicate _ =
   with_tmp_dir "complex_remove" @@ fun () ->
   let date = mk_date 2025 7 1 in
-  let inv1 = mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0) in
-  let inv2 = mk_meeting ~organizer:"alice" "carol" date (mk_time 11 0) (mk_time 12 0) in
-  let inv3 = mk_meeting ~organizer:"dave" "bob" date (mk_time 13 0) (mk_time 14 0) in
+  let inv1 =
+    mk_meeting ~organizer:"alice" "bob" date (mk_time 9 0) (mk_time 10 0)
+  in
+  let inv2 =
+    mk_meeting ~organizer:"alice" "carol" date (mk_time 11 0) (mk_time 12 0)
+  in
+  let inv3 =
+    mk_meeting ~organizer:"dave" "bob" date (mk_time 13 0) (mk_time 14 0)
+  in
   Storage.add_invitation inv1;
   Storage.add_invitation inv2;
   Storage.add_invitation inv3;
   Storage.remove_invitation (fun inv ->
-    inv.organizer_name = "alice" && inv.start_time.hours = 9);
+      inv.organizer_name = "alice" && inv.start_time.hours = 9);
   let remaining = Storage.load_invitations () in
   assert_equal ~printer:string_of_int 2 (List.length remaining);
   assert_bool "inv1 should be removed"
-    (not (List.exists (fun i -> i.attendee_name = "bob" && i.start_time.hours = 9) remaining))
+    (not
+       (List.exists
+          (fun i -> i.attendee_name = "bob" && i.start_time.hours = 9)
+          remaining))
 
 let test_get_invitations_when_none _ =
   with_tmp_dir "no_invites" @@ fun () ->
@@ -344,12 +408,13 @@ let test_get_invitations_when_none _ =
   assert_equal ~printer:string_of_int 0 (List.length invites)
 
 let test_salt_randomness _ =
-  let salts = List.init 100 (fun _ ->
-    let hash = Auth.hash_password "test" in
-    match String.split_on_char ':' hash with
-    | salt :: _ -> salt
-    | _ -> assert_failure "invalid hash format"
-  ) in
+  let salts =
+    List.init 100 (fun _ ->
+        let hash = Auth.hash_password "test" in
+        match String.split_on_char ':' hash with
+        | salt :: _ -> salt
+        | _ -> assert_failure "invalid hash format")
+  in
   let unique_salts = List.sort_uniq String.compare salts in
   assert_bool "should generate diverse salts" (List.length unique_salts > 95)
 
@@ -378,7 +443,9 @@ let test_password_with_colon _ =
 let test_meeting_same_organizer_and_attendee _ =
   with_tmp_dir "self_meeting" @@ fun () ->
   let date = mk_date 2025 8 1 in
-  let self_meeting = mk_meeting ~organizer:"alice" "alice" date (mk_time 10 0) (mk_time 11 0) in
+  let self_meeting =
+    mk_meeting ~organizer:"alice" "alice" date (mk_time 10 0) (mk_time 11 0)
+  in
   Storage.add_meeting self_meeting;
   let meetings = Storage.get_meetings_for_user "alice" in
   assert_equal ~printer:string_of_int 1 (List.length meetings)
@@ -407,12 +474,12 @@ let suite =
          "empty_password" >:: test_empty_password;
          "long_password" >:: test_long_password;
          "special_chars_password" >:: test_special_chars_password;
-       "hash_format" >:: test_hash_format;
-       "auth_create_and_verify" >:: test_auth_create_and_verify_user;
-       "auth_duplicate_usernames" >:: test_auth_rejects_duplicate_usernames;
-       "auth_host_exists_flag" >:: test_auth_host_exists_flag;
-       "auth_persistence_file_format" >:: test_auth_persistence_file_format;
-       "special_chars_username" >:: test_special_chars_username;
+         "hash_format" >:: test_hash_format;
+         "auth_create_and_verify" >:: test_auth_create_and_verify_user;
+         "auth_duplicate_usernames" >:: test_auth_rejects_duplicate_usernames;
+         "auth_host_exists_flag" >:: test_auth_host_exists_flag;
+         "auth_persistence_file_format" >:: test_auth_persistence_file_format;
+         "special_chars_username" >:: test_special_chars_username;
          "empty_username" >:: test_empty_username;
          "meetings_for_nonexistent_user" >:: test_meetings_for_nonexistent_user;
          "multiple_users" >:: test_multiple_users;
@@ -421,20 +488,24 @@ let suite =
          "role_json_roundtrip" >:: test_role_json_roundtrip;
          "unicode_username" >:: test_unicode_username;
          "very_long_username" >:: test_very_long_username;
-         "authentication_case_sensitivity" >:: test_authentication_case_sensitivity;
+         "authentication_case_sensitivity"
+         >:: test_authentication_case_sensitivity;
          "empty_password_authentication" >:: test_empty_password_authentication;
          "multiple_host_attempts" >:: test_multiple_host_attempts;
          "invitation_json_roundtrip" >:: test_invitation_json_roundtrip;
          "storage_many_users" >:: test_storage_many_users;
          "storage_many_meetings" >:: test_storage_many_meetings;
-         "remove_invitations_complex_predicate" >:: test_remove_invitations_complex_predicate;
+         "remove_invitations_complex_predicate"
+         >:: test_remove_invitations_complex_predicate;
          "get_invitations_when_none" >:: test_get_invitations_when_none;
          "salt_randomness" >:: test_salt_randomness;
          "meeting_retrieval_empty" >:: test_meeting_retrieval_empty;
          "user_role_persistence" >:: test_user_role_persistence;
          "password_with_colon" >:: test_password_with_colon;
-         "meeting_same_organizer_and_attendee" >:: test_meeting_same_organizer_and_attendee;
-         "meetings_ordering_preservation" >:: test_meetings_ordering_preservation;
+         "meeting_same_organizer_and_attendee"
+         >:: test_meeting_same_organizer_and_attendee;
+         "meetings_ordering_preservation"
+         >:: test_meetings_ordering_preservation;
        ]
 
 let () = run_test_tt_main suite

@@ -12,11 +12,13 @@ type button = {
   text_color : int;
 }
 
-type notice_kind = Info | Success | Error
+type notice_kind =
+  | Info
+  | Success
+  | Error
 
 let window_w = 1100
 let window_h = 720
-
 let background = rgb 245 247 252
 let card = rgb 255 255 255
 let border = rgb 225 231 241
@@ -57,7 +59,7 @@ let draw_card ~x ~y ~w ~h =
 
 (** Center text inside a rectangle using the provided color. *)
 let center_text_in_rect text (x, y, w, h) color =
-  let (tw, th) = text_size text in
+  let tw, th = text_size text in
   let tx = x + ((w - tw) / 2) in
   let ty = y + ((h - th) / 2) in
   set_color color;
@@ -79,7 +81,8 @@ let button_at buttons x y =
     (fun b -> x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)
     buttons
 
-(** Block until a button is chosen via mouse click or mapped keypress, returning its id. *)
+(** Block until a button is chosen via mouse click or mapped keypress, returning
+    its id. *)
 let wait_for_button buttons =
   let rec loop () =
     let ev = wait_next_event [ Button_down; Key_pressed ] in
@@ -87,7 +90,7 @@ let wait_for_button buttons =
       match button_at buttons ev.mouse_x ev.mouse_y with
       | Some b -> b.id
       | None -> loop ()
-    else if ev.keypressed then (
+    else if ev.keypressed then
       match ev.key with
       | '\027' -> (
           match List.find_opt (fun b -> b.id = "back") buttons with
@@ -95,10 +98,9 @@ let wait_for_button buttons =
           | None -> loop ())
       | '1' .. '9' ->
           let idx = int_of_char ev.key - int_of_char '1' in
-          if idx < List.length buttons then
-            (List.nth buttons idx).id
+          if idx < List.length buttons then (List.nth buttons idx).id
           else loop ()
-      | _ -> loop ())
+      | _ -> loop ()
     else loop ()
   in
   loop ()
@@ -110,7 +112,10 @@ let show_notice ?(kind = Info) ~title ~body () =
   let x = (window_w - card_w) / 2 in
   let y = (window_h - card_h) / 2 in
   let bar_color =
-    match kind with Info -> accent | Success -> success | Error -> danger
+    match kind with
+    | Info -> accent
+    | Success -> success
+    | Error -> danger
   in
   draw_card ~x ~y ~w:card_w ~h:card_h;
   set_color bar_color;
@@ -183,7 +188,8 @@ let draw_stats ~x ~y stats =
 (** Draw a list of buttons. *)
 let render_buttons buttons = List.iter draw_button buttons
 
-(** Prompt for arbitrary text, optionally masking for passwords, with submit/cancel handling. *)
+(** Prompt for arbitrary text, optionally masking for passwords, with
+    submit/cancel handling. *)
 let rec prompt_text ?(password = false) ?(allow_empty = false) ~title ~subtitle
     () =
   let rec loop current error_msg =
@@ -194,8 +200,7 @@ let rec prompt_text ?(password = false) ?(allow_empty = false) ~title ~subtitle
     moveto 160 380;
     draw_string "Type your response. Enter = submit, Esc = cancel.";
     let display =
-      if password then String.make (String.length current) '*'
-      else current
+      if password then String.make (String.length current) '*' else current
     in
     set_color accent_dark;
     set_text_size 20;
@@ -218,15 +223,13 @@ let rec prompt_text ?(password = false) ?(allow_empty = false) ~title ~subtitle
       | '\b' | '\127' ->
           if String.length current = 0 then loop "" error_msg
           else
-            let next =
-              String.sub current 0 (String.length current - 1)
-            in
+            let next = String.sub current 0 (String.length current - 1) in
             loop next None
       | c ->
           if Char.code c >= 32 && Char.code c <= 126 then
             let next = current ^ String.make 1 c in
             loop next None
-      else loop current error_msg
+          else loop current error_msg
     else loop current error_msg
   in
   loop "" None
@@ -296,14 +299,15 @@ let rec ensure_host_account () =
               ~body:"Host account created successfully." ();
             true
         | Error msg ->
-            show_notice ~kind:Error ~title:"Unable to create host"
-              ~body:msg ();
+            show_notice ~kind:Error ~title:"Unable to create host" ~body:msg ();
             ensure_host_account ())
 
-(** Prompt for a password for [username], looping on failure until success or cancel. *)
+(** Prompt for a password for [username], looping on failure until success or
+    cancel. *)
 let rec authenticate username =
   match
-    prompt_text ~password:true ~title:("Authenticate " ^ username)
+    prompt_text ~password:true
+      ~title:("Authenticate " ^ username)
       ~subtitle:"Enter your password to continue." ()
   with
   | None -> None
@@ -328,9 +332,9 @@ let rec review_invitations username =
         else
           let inv = List.nth invitations idx in
           clear_canvas ();
-          draw_title ~title:("Invitations for " ^ username)
-            ~subtitle:
-              (Printf.sprintf "Reviewing %d of %d" (idx + 1) total);
+          draw_title
+            ~title:("Invitations for " ^ username)
+            ~subtitle:(Printf.sprintf "Reviewing %d of %d" (idx + 1) total);
           draw_card ~x:120 ~y:200 ~w:(window_w - 240) ~h:280;
           set_color accent_dark;
           set_text_size 18;
@@ -339,7 +343,8 @@ let rec review_invitations username =
           set_color muted;
           set_text_size 14;
           moveto 160 390;
-          draw_string "Options: Accept to schedule, Decline to remove, Skip to keep.";
+          draw_string
+            "Options: Accept to schedule, Decline to remove, Skip to keep.";
           let buttons =
             [
               {
@@ -394,7 +399,8 @@ let rec review_invitations username =
                     ~body:"Meeting scheduled successfully." ();
                   review_invitations username
               | Error msg ->
-                  show_notice ~kind:Error ~title:"Unable to schedule" ~body:msg ();
+                  show_notice ~kind:Error ~title:"Unable to schedule" ~body:msg
+                    ();
                   loop (idx + 1))
           | "decline" ->
               Storage.remove_invitation (fun cand -> cand = inv);
@@ -407,9 +413,9 @@ let rec review_invitations username =
       in
       loop 0
 
-(** Guide a user through entering invitation details and enqueue the invite if valid. *)
+(** Guide a user through entering invitation details and enqueue the invite if
+    valid. *)
 let rec schedule_meeting_gui organizer_name =
-  let open Option in
   match
     prompt_text ~title:"Send an invitation"
       ~subtitle:"Who would you like to meet with?" ()
@@ -430,9 +436,7 @@ let rec schedule_meeting_gui organizer_name =
             (),
           prompt_text ~title:"End time" ~subtitle:"Enter end time (HH:MM)" () )
       with
-      | None, _, _
-      | _, None, _
-      | _, _, None -> ()
+      | None, _, _ | _, None, _ | _, _, None -> ()
       | Some date_str, Some start_str, Some end_str -> (
           match
             ( parse_date_input date_str,
@@ -464,8 +468,8 @@ let rec schedule_meeting_gui organizer_name =
                   Storage.add_invitation meeting;
                   show_notice ~kind:Success ~title:"Invitation sent"
                     ~body:
-                      "The invitee will see this request the next time they log \
-                       in."
+                      "The invitee will see this request the next time they \
+                       log in."
                     ();
                   ())
           | _ ->
@@ -480,8 +484,7 @@ let rec host_dashboard () =
   clear_canvas ();
   draw_title ~title:"Host dashboard"
     ~subtitle:"Schedule invitations, review requests, and monitor meetings.";
-  render_meeting_list ~title:"All meetings" meetings ~x:40 ~y:140 ~w:660
-    ~h:480;
+  render_meeting_list ~title:"All meetings" meetings ~x:40 ~y:140 ~w:660 ~h:480;
   draw_stats ~x:740 ~y:580
     [
       ("Meetings scheduled", string_of_int (List.length meetings), accent);
@@ -501,8 +504,7 @@ let rec host_dashboard () =
       };
       {
         id = "pending";
-        label =
-          Printf.sprintf "Review invitations (%d)" (List.length pending);
+        label = Printf.sprintf "Review invitations (%d)" (List.length pending);
         x = 740;
         y = 290;
         w = 320;
@@ -549,10 +551,10 @@ let rec attendee_dashboard username =
   let meetings = Storage.get_meetings_for_user username in
   let pending = Storage.get_invitations_for_user username in
   clear_canvas ();
-  draw_title ~title:("Attendee dashboard - " ^ username)
+  draw_title
+    ~title:("Attendee dashboard - " ^ username)
     ~subtitle:"View meetings, send invitations, and respond to requests.";
-  render_meeting_list ~title:"Your meetings" meetings ~x:40 ~y:140 ~w:660
-    ~h:480;
+  render_meeting_list ~title:"Your meetings" meetings ~x:40 ~y:140 ~w:660 ~h:480;
   draw_stats ~x:740 ~y:580
     [
       ("Meetings for you", string_of_int (List.length meetings), accent);
@@ -572,8 +574,7 @@ let rec attendee_dashboard username =
       };
       {
         id = "pending";
-        label =
-          Printf.sprintf "Review invitations (%d)" (List.length pending);
+        label = Printf.sprintf "Review invitations (%d)" (List.length pending);
         x = 740;
         y = 290;
         w = 320;
@@ -615,7 +616,8 @@ let rec attendee_dashboard username =
   | "logout" -> ()
   | _ -> attendee_dashboard username
 
-(** Enter host mode by ensuring the host account, authenticating, then opening the dashboard. *)
+(** Enter host mode by ensuring the host account, authenticating, then opening
+    the dashboard. *)
 let rec enter_host_mode () =
   if not (ensure_host_account ()) then ()
   else
@@ -625,26 +627,27 @@ let rec enter_host_mode () =
         review_invitations "host";
         host_dashboard ()
 
-(** Enter attendee mode by authenticating existing users or creating a new account. *)
+(** Enter attendee mode by authenticating existing users or creating a new
+    account. *)
 let rec enter_attendee_mode () =
   match
     prompt_text ~title:"Attendee login"
       ~subtitle:"Enter your username to continue." ()
   with
   | None -> ()
-  | Some username ->
+  | Some username -> (
       let username = String.trim username in
       if String.length username = 0 then (
         show_notice ~kind:Error ~title:"Username required"
           ~body:"Please enter a username." ();
         enter_attendee_mode ())
-      else if Auth.user_exists username then
+      else if Auth.user_exists username then (
         match authenticate username with
         | None -> ()
         | Some _ ->
             review_invitations username;
-            attendee_dashboard username
-      else (
+            attendee_dashboard username)
+      else
         match
           prompt_password_pair ~title:"Create account"
             ~subtitle:"Set a password for your new account." ()
@@ -716,7 +719,8 @@ let rec main_menu () =
   | "exit" -> safe_close ()
   | _ -> main_menu ()
 
-(** Open the graphics window, run the main menu loop, and close safely on exit or error. *)
+(** Open the graphics window, run the main menu loop, and close safely on exit
+    or error. *)
 let run () =
   try
     open_graph (Printf.sprintf " %dx%d" window_w window_h);

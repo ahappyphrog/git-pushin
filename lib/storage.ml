@@ -95,11 +95,12 @@ let json_to_role json =
 
 (* Convert user to JSON *)
 let user_to_json u =
-  `Assoc [
-    ("username", `String u.username);
-    ("password_hash", `String u.password_hash);
-    ("role", role_to_json u.role);
-  ]
+  `Assoc
+    [
+      ("username", `String u.username);
+      ("password_hash", `String u.password_hash);
+      ("role", role_to_json u.role);
+    ]
 
 (* Convert JSON to user *)
 let json_to_user json =
@@ -148,9 +149,7 @@ let authenticate_user username password =
 
 (* Invitation management *)
 let invitations_file = "invitations.json"
-
 let invitation_to_json (inv : invitation) = meeting_to_json inv
-
 let json_to_invitation json = json_to_meeting json
 
 let load_invitations () =

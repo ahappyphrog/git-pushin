@@ -26,8 +26,7 @@ let load_passwords () =
   if Sys.file_exists passwords_file then
     try
       let json = Yojson.Basic.from_file passwords_file in
-      json |> to_assoc
-      |> List.map (fun (name, pass) -> (name, to_string pass))
+      json |> to_assoc |> List.map (fun (name, pass) -> (name, to_string pass))
     with _ -> []
   else []
 
