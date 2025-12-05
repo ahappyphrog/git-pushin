@@ -11,3 +11,5 @@ We also used ChatGPT to research how password encryption works and how to implem
 Used GenAI to find and explain the features and funcitonality we needed from Digest and random int (password salting, digesting to hex etc.)
 
 Used ChatGPT to research how to use XQuartz and Graphics libraries. Used ChatGPT to understand how to create buttons, textboxes, closing, etc. in GUI Application. Additionally, we used GenAI to help us with any GUI bugs we ran into, including how to set it up with the XQuartz server display as well as how to create updates in real time. 
+
+Used AI to help build out test suite. We brainstormed edge cases and tests we wanted and had AI generate the skelenton code using our cases. We then went over all test cases to double check they were accurate and functioned as intended
